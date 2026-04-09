@@ -1,0 +1,142 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Dashboard</p>
+                <h1 class="page-title">Welcome back.</h1>
+                <p class="page-description">@DateTime.Now.ToString("dddd, MMMM dd, yyyy") · Stay consistent, move with intent, and keep your training momentum high.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+                <a asp-page="/Exercises/Index" class="btn btn-secondary">Exercise library</a>
+                <a asp-page="/Workouts/History" class="btn btn-secondary">Workout history</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-3">
+        <div class="metric-card">
+            <p class="metric-label">Workouts this week</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.WorkoutsThisWeek</p>
+            <p class="metric-meta">Session count</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Current streak</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.CurrentStreak</p>
+            <p class="metric-meta">Days in a row</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Recent sessions tracked</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.RecentWorkouts.Count()</p>
+            <p class="metric-meta">Loaded on dashboard</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+        <div class="space-y-8">
+            @if (Model.TodaysSummary != null)
+            {
+                <partial name="_DailySummary" model="Model.TodaysSummary" />
+            }
+
+            <section class="surface-card">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">Recent activity</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Latest workouts</h2>
+                    </div>
+                    @if (Model.RecentWorkouts.Any())
+                    {
+                        <a asp-page="/Workouts/History" class="btn btn-secondary">View all</a>
+                    }
+                </div>
+
+                @if (Model.RecentWorkouts.Any())
+                {
+                    <div class="space-y-4">
+                        @foreach (var workout in Model.RecentWorkouts)
+                        {
+                            <a asp-page="/Workouts/Details" asp-route-id="@workout.Id" class="block rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-primary-500/30">
+                                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@workout.Date.ToString("MMM dd, yyyy")</h3>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@workout.Duration minutes · @workout.WorkoutExercises.Count exercises</p>
+                                        <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                                            @string.Join(", ", workout.WorkoutExercises.Take(3).Select(we => we.Exercise.Name))
+                                            @if (workout.WorkoutExercises.Count > 3)
+                                            {
+                                                <text> + @(workout.WorkoutExercises.Count - 3) more</text>
+                                            }
+                                        </p>
+                                    </div>
+                                    <span class="chip chip-primary">View details</span>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts yet</h3>
+                        <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Start logging sessions to build your history, view performance, and keep tabs on progress.</p>
+                        <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start your first workout</a>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <div class="space-y-8">
+            <section class="surface-card">
+                <p class="page-eyebrow">Today</p>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Current workout status</h2>
+
+                @if (Model.TodaysWorkout != null)
+                {
+                    <div class="mt-6 rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        @if (Model.TodaysWorkout.IsCompleted)
+                        {
+                            <span class="chip chip-success">Completed</span>
+                            <p class="mt-4 text-lg font-semibold text-slate-950 dark:text-white">You already wrapped up today's session.</p>
+                            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Duration: @Model.TodaysWorkout.Duration minutes</p>
+                            <a asp-page="/Workouts/Details" asp-route-id="@Model.TodaysWorkout.Id" class="btn btn-secondary mt-5">Review workout</a>
+                        }
+                        else
+                        {
+                            <span class="chip chip-primary">In progress</span>
+                            <p class="mt-4 text-lg font-semibold text-slate-950 dark:text-white">You have an active workout waiting.</p>
+                            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Jump back in and finish strong.</p>
+                            <a asp-page="/Workouts/Start" asp-route-id="@Model.TodaysWorkout.Id" class="btn btn-primary mt-5">Continue workout</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state mt-6">
+                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Nothing planned yet</h3>
+                        <p class="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">Start a new session whenever you're ready and FitTracker will take it from there.</p>
+                        <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start workout</a>
+                    </div>
+                }
+            </section>
+
+            <section class="surface-card">
+                <p class="page-eyebrow">Quick actions</p>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Move fast</h2>
+                <div class="mt-6 grid gap-3">
+                    <a asp-page="/Workouts/Start" class="btn btn-primary justify-between">Log a workout <span>→</span></a>
+                    <a asp-page="/Exercises/Index" class="btn btn-secondary justify-between">Browse exercises <span>→</span></a>
+                    <a asp-page="/Analytics/Daily" class="btn btn-secondary justify-between">View daily analytics <span>→</span></a>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>

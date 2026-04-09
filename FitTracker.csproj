@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NpmCommand Condition="'$(OS)' == 'Windows_NT' and Exists('C:\Program Files\nodejs\npm.cmd')">C:\Program Files\nodejs\npm.cmd</NpmCommand>
+    <NpmCommand Condition="'$(OS)' == 'Windows_NT' and '$(NpmCommand)' == ''">npm.cmd</NpmCommand>
+    <NpmCommand Condition="'$(OS)' != 'Windows_NT'">npm</NpmCommand>
+    <SkipTailwindBuild Condition="'$(SkipTailwindBuild)' == ''">false</SkipTailwindBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
+  <Target Name="NpmInstall"
+          BeforeTargets="Build;Publish"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json') and !Exists('$(MSBuildProjectDirectory)\node_modules')">
+    <Message Importance="high" Text="Installing npm packages for Tailwind CSS..." />
+    <Exec Command="&quot;$(NpmCommand)&quot; install" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="BuildTailwindCss"
+          BeforeTargets="Build;Publish"
+          DependsOnTargets="NpmInstall"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json')">
+    <Message Importance="high" Text="Building Tailwind CSS..." />
+    <Exec Command="&quot;$(NpmCommand)&quot; run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+</Project>

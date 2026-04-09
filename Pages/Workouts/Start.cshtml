@@ -1,0 +1,219 @@
+@page
+@model StartModel
+@{
+    ViewData["Title"] = "Start Workout";
+}
+
+<div class="page-shell" x-data="workoutTracker()">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Workout logging</p>
+                <h1 class="page-title">@(Model.Workout != null ? "Continue your session" : "Start a new workout")</h1>
+                <p class="page-description">@DateTime.Now.ToString("dddd, MMMM dd, yyyy") · Add exercises, log sets quickly, and finish with a clean summary.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Exercises/Index" class="btn btn-secondary">Browse exercises</a>
+                <a asp-page="/Workouts/History" class="btn btn-secondary">Workout history</a>
+            </div>
+        </div>
+    </section>
+
+    <form method="post" class="space-y-8">
+        <input type="hidden" asp-for="WorkoutId" />
+
+        @if (Model.Workout == null || !Model.Workout.IsCompleted)
+        {
+            <section class="surface-card">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">Add exercise</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Build today's lineup</h2>
+                    </div>
+                    <span class="chip">@Model.WorkoutExercises.Count exercise@(Model.WorkoutExercises.Count == 1 ? string.Empty : "s")</span>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                    <div>
+                        <label class="input-label" asp-for="SelectedExerciseId">Exercise</label>
+                        <select asp-for="SelectedExerciseId" class="input">
+                            <option value="">Select an exercise...</option>
+                            @foreach (var category in Model.ExercisesByCategory)
+                            {
+                                <optgroup label="@category.Key">
+                                    @foreach (var exercise in category.Value)
+                                    {
+                                        <option value="@exercise.Id">@exercise.Name (@exercise.Equipment)</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" asp-page-handler="AddExercise" class="btn btn-primary md:min-w-40">Add exercise</button>
+                </div>
+            </section>
+        }
+
+        @if (Model.WorkoutExercises.Any())
+        {
+            <div class="space-y-6">
+                @for (int i = 0; i < Model.WorkoutExercises.Count; i++)
+                {
+                    var workoutExercise = Model.WorkoutExercises[i];
+                    <section class="surface-card">
+                        <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="chip chip-primary">Exercise @(i + 1)</span>
+                                    <span class="chip">@workoutExercise.Exercise.Equipment</span>
+                                </div>
+                                <h2 class="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@workoutExercise.Exercise.Name</h2>
+                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@workoutExercise.Exercise.MuscleGroups</p>
+                            </div>
+                            @if (!Model.Workout!.IsCompleted)
+                            {
+                                <button type="submit"
+                                        asp-page-handler="RemoveExercise"
+                                        asp-route-exerciseId="@workoutExercise.Id"
+                                        class="btn btn-danger">
+                                    Remove exercise
+                                </button>
+                            }
+                        </div>
+
+                        @if (workoutExercise.Sets.Any())
+                        {
+                            <div class="table-shell mb-6">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Set</th>
+                                            <th>Weight</th>
+                                            <th>Reps</th>
+                                            <th>RPE</th>
+                                            @if (!Model.Workout.IsCompleted)
+                                            {
+                                                <th></th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var set in workoutExercise.Sets.OrderBy(s => s.SetNumber))
+                                        {
+                                            <tr>
+                                                <td class="font-semibold">@set.SetNumber</td>
+                                                <td>@(set.Weight?.ToString("0.##") ?? "-") lbs</td>
+                                                <td>@(set.Reps?.ToString() ?? "-")</td>
+                                                <td>@(set.RPE?.ToString() ?? "-")</td>
+                                                @if (!Model.Workout.IsCompleted)
+                                                {
+                                                    <td class="text-right">
+                                                        <button type="submit"
+                                                                asp-page-handler="RemoveSet"
+                                                                asp-route-setId="@set.Id"
+                                                                class="text-sm font-medium text-red-500 transition hover:text-red-400 dark:text-red-300 dark:hover:text-red-200">
+                                                            Remove
+                                                        </button>
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        @if (!Model.Workout.IsCompleted)
+                        {
+                            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                                <h3 class="text-lg font-semibold text-slate-950 dark:text-white">Add set #@(workoutExercise.Sets.Count + 1)</h3>
+                                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+                                    <input type="hidden" name="WorkoutExerciseId" value="@workoutExercise.Id" />
+                                    <div>
+                                        <label class="input-label">Weight (lbs)</label>
+                                        <input type="number" name="Weight_@workoutExercise.Id" step="0.01" class="input" placeholder="0" />
+                                    </div>
+                                    <div>
+                                        <label class="input-label">Reps</label>
+                                        <input type="number" name="Reps_@workoutExercise.Id" class="input" placeholder="0" />
+                                    </div>
+                                    <div>
+                                        <label class="input-label">RPE (1-10)</label>
+                                        <input type="number" name="RPE_@workoutExercise.Id" min="1" max="10" class="input" placeholder="7" />
+                                    </div>
+                                    <button type="submit"
+                                            asp-page-handler="AddSet"
+                                            asp-route-workoutExerciseId="@workoutExercise.Id"
+                                            class="btn btn-primary xl:min-w-36">
+                                        Add set
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+
+            @if (!Model.Workout!.IsCompleted)
+            {
+                <section class="surface-card space-y-6">
+                    <div>
+                        <p class="page-eyebrow">Finish up</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Wrap up this workout</h2>
+                    </div>
+
+                    <div>
+                        <label class="input-label" asp-for="WorkoutNotes">Workout notes</label>
+                        <textarea asp-for="WorkoutNotes" class="input" rows="4" placeholder="How did this session feel? Anything worth remembering?"></textarea>
+                    </div>
+
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <button type="submit"
+                                asp-page-handler="CompleteWorkout"
+                                class="btn btn-primary flex-1"
+                                onclick="return confirm('Complete this workout?')">
+                            Complete workout
+                        </button>
+                        <button type="submit"
+                                asp-page-handler="CancelWorkout"
+                                class="btn btn-danger"
+                                onclick="return confirm('Cancel and discard this workout?')">
+                            Cancel workout
+                        </button>
+                    </div>
+                </section>
+            }
+            else
+            {
+                <section class="surface-card text-center">
+                    <span class="chip chip-success">Workout complete</span>
+                    <h2 class="mt-5 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Nice work.</h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Duration: @Model.Workout.Duration minutes</p>
+                    <div class="mt-6 flex justify-center gap-3">
+                        <a asp-page="/Workouts/History" class="btn btn-primary">View history</a>
+                        <a asp-page="/Workouts/Start" class="btn btn-secondary">Log another workout</a>
+                    </div>
+                </section>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Ready when you are</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Choose your first exercise to open the quick logging flow.</p>
+            </div>
+        }
+    </form>
+</div>
+
+<script>
+function workoutTracker() {
+    return {
+        startTime: null,
+        init() {
+            this.startTime = Date.now();
+        }
+    }
+}
+</script>

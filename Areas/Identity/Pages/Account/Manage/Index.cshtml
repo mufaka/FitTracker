@@ -1,0 +1,51 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Profile";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Account</p>
+                <h1 class="page-title">Profile settings</h1>
+                <p class="page-description">Manage the details tied to your FitTracker account.</p>
+            </div>
+        </div>
+    </section>
+
+    <partial name="_StatusMessage" for="StatusMessage" />
+
+    <section class="grid gap-6 xl:grid-cols-[0.7fr_1.3fr]">
+        <div class="surface-card">
+            <p class="page-eyebrow">Overview</p>
+            <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Account details</h2>
+            <p class="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">Keep your login details current so security features and future account recovery flows work as expected.</p>
+        </div>
+
+        <div class="surface-card">
+            <form id="profile-form" method="post" class="space-y-5">
+                <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+                <div>
+                    <label asp-for="Username" class="input-label"></label>
+                    <input asp-for="Username" class="input" placeholder="Username" disabled />
+                </div>
+
+                <div>
+                    <label asp-for="Input.PhoneNumber" class="input-label"></label>
+                    <input asp-for="Input.PhoneNumber" class="input" placeholder="Please enter your phone number." />
+                    <span asp-validation-for="Input.PhoneNumber" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <button id="update-profile-button" type="submit" class="btn btn-primary">Save changes</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,79 @@
+﻿@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="auth-shell">
+    <section class="auth-card flex flex-col justify-between">
+        <div>
+            <p class="page-eyebrow">Create account</p>
+            <h1 class="mt-3 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">Set up your FitTracker workspace.</h1>
+            <p class="mt-4 text-base leading-7 text-slate-600 dark:text-slate-400">Create an account to log workouts, review daily summaries, and keep your progress organized.</p>
+        </div>
+
+        <div class="mt-10 space-y-4">
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">What you get</p>
+                <ul class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                    <li>• A cleaner workout logging flow</li>
+                    <li>• Exercise history and daily analytics</li>
+                    <li>• Dark mode that carries across the app</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="auth-card">
+        <div class="mb-8">
+            <p class="page-eyebrow">New account</p>
+            <h2 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Create your login</h2>
+        </div>
+
+        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="space-y-5">
+            <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+            <div>
+                <label asp-for="Input.Email" class="input-label"></label>
+                <input asp-for="Input.Email" class="input" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <span asp-validation-for="Input.Email" class="mt-2 block text-sm text-red-500"></span>
+            </div>
+
+            <div>
+                <label asp-for="Input.Password" class="input-label"></label>
+                <input asp-for="Input.Password" class="input" autocomplete="new-password" aria-required="true" placeholder="Password" />
+                <span asp-validation-for="Input.Password" class="mt-2 block text-sm text-red-500"></span>
+            </div>
+
+            <div>
+                <label asp-for="Input.ConfirmPassword" class="input-label"></label>
+                <input asp-for="Input.ConfirmPassword" class="input" autocomplete="new-password" aria-required="true" placeholder="Confirm password" />
+                <span asp-validation-for="Input.ConfirmPassword" class="mt-2 block text-sm text-red-500"></span>
+            </div>
+
+            <button id="registerSubmit" type="submit" class="btn btn-primary w-full justify-center">Create account</button>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                Already have an account?
+                <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="font-medium text-primary-600 dark:text-primary-300">Log in</a>
+            </p>
+        </form>
+
+        @if ((Model.ExternalLogins?.Count ?? 0) > 0)
+        {
+            <div class="mt-8 border-t border-slate-200 pt-8 dark:border-slate-800">
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Use another service</p>
+                <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="mt-4 flex flex-wrap gap-3">
+                    @foreach (var provider in Model.ExternalLogins!)
+                    {
+                        <button type="submit" class="btn btn-secondary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                    }
+                </form>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

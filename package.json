@@ -1,0 +1,12 @@
+{
+  "name": "fittracker",
+  "version": "1.0.0",
+  "description": "FitTracker - Fitness tracking application",
+  "scripts": {
+    "build:css": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

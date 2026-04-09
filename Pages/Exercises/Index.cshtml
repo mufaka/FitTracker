@@ -1,0 +1,83 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Exercise Library";
+}
+
+<div class="page-shell">
+    <section class="page-header">
+        <div>
+            <p class="page-eyebrow">Exercise library</p>
+            <h1 class="page-title">Build better workouts faster.</h1>
+            <p class="page-description">Browse @Model.TotalExercises movements, narrow the list instantly, and jump straight into logging.</p>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <form method="get" id="filterForm" class="space-y-6">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+                <div>
+                    <label class="input-label" for="searchTerm">Search</label>
+                    <input id="searchTerm"
+                           type="text"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           placeholder="Search exercises, muscle groups, or equipment"
+                           class="input"
+                           hx-get="/Exercises/Index"
+                           hx-trigger="keyup changed delay:350ms"
+                           hx-target="#exercise-list"
+                           hx-include="[name='category'], [name='equipment']" />
+                </div>
+                <div>
+                    <label class="input-label" for="category">Category</label>
+                    <select id="category" name="category" class="input" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All categories</option>
+                        <option value="Strength" selected="@(Model.CategoryFilter == "Strength")">Strength</option>
+                        <option value="Cardio" selected="@(Model.CategoryFilter == "Cardio")">Cardio</option>
+                        <option value="Core" selected="@(Model.CategoryFilter == "Core")">Core</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="input-label" for="equipment">Equipment</label>
+                    <select id="equipment" name="equipment" class="input" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All equipment</option>
+                        <option value="Barbell" selected="@(Model.EquipmentFilter == "Barbell")">Barbell</option>
+                        <option value="Dumbbells" selected="@(Model.EquipmentFilter == "Dumbbells")">Dumbbells</option>
+                        <option value="Bodyweight" selected="@(Model.EquipmentFilter == "Bodyweight")">Bodyweight</option>
+                        <option value="Cable" selected="@(Model.EquipmentFilter == "Cable")">Cable</option>
+                        <option value="Machine" selected="@(Model.EquipmentFilter == "Machine")">Machine</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="chip">@Model.Exercises.Count result@(Model.Exercises.Count == 1 ? string.Empty : "s")</span>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.CategoryFilter) || !string.IsNullOrEmpty(Model.EquipmentFilter))
+                {
+                    <a asp-page="/Exercises/Index" class="btn btn-secondary">Clear filters</a>
+                }
+            </div>
+        </form>
+    </section>
+
+    <section id="exercise-list">
+        @if (Model.Exercises.Any())
+        {
+            <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                @foreach (var exercise in Model.Exercises)
+                {
+                    <partial name="~/Pages/Shared/Components/_ExerciseCard.cshtml" model="exercise" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No exercises found</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Try a broader search or clear one of the filters to discover more options.</p>
+            </div>
+        }
+    </section>
+</div>

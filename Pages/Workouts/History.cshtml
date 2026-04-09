@@ -1,0 +1,41 @@
+@page
+@model HistoryModel
+@{
+    ViewData["Title"] = "Workout History";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Workout history</p>
+                <h1 class="page-title">See how your training is stacking up.</h1>
+                <p class="page-description">Review every logged session, revisit notes, and drill into the details behind your recent performance.</p>
+            </div>
+            <div class="metric-card min-w-56">
+                <p class="metric-label">Total workouts logged</p>
+                <p class="metric-value text-primary-600 dark:text-primary-300">@Model.TotalWorkouts</p>
+                <p class="metric-meta">Completed sessions</p>
+            </div>
+        </div>
+    </section>
+
+    @if (Model.Workouts.Any())
+    {
+        <section class="grid gap-6 xl:grid-cols-2">
+            @foreach (var workout in Model.Workouts)
+            {
+                <partial name="~/Pages/Shared/Components/_WorkoutCard.cshtml" model="workout" />
+            }
+        </section>
+    }
+    else
+    {
+        <div class="empty-state">
+            <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts yet</h3>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Start logging sessions and your full training timeline will appear here.</p>
+            <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start first workout</a>
+        </div>
+    }
+</div>

@@ -1,0 +1,228 @@
+@{
+    var currentPath = Context.Request.Path.Value ?? string.Empty;
+    var accountName = User.Identity?.Name ?? "Athlete";
+    var displayName = accountName.Contains('@') ? accountName[..accountName.IndexOf('@')] : accountName;
+
+    string NavClasses(string page)
+    {
+        var isDashboard = page == "/Index" &&
+            (string.Equals(currentPath, "/", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(currentPath, "/Index", StringComparison.OrdinalIgnoreCase));
+
+        var isActive = isDashboard || currentPath.StartsWith(page, StringComparison.OrdinalIgnoreCase);
+        return isActive ? "app-nav-link app-nav-link-active" : "app-nav-link";
+    }
+}
+<!DOCTYPE html>
+<html lang="en" x-data="layoutShell()">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>@ViewData["Title"] - FitTracker</title>
+    <script>
+        (() => {
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            document.documentElement.classList.toggle('dark', darkMode);
+            document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
+        })();
+    </script>
+    <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+</head>
+<body class="app-shell">
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div class="absolute -left-24 top-12 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl dark:bg-primary-500/15"></div>
+        <div class="absolute right-0 top-0 h-96 w-96 rounded-full bg-sky-200/30 blur-3xl dark:bg-sky-500/10"></div>
+        <div class="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-violet-200/30 blur-3xl dark:bg-violet-500/10"></div>
+    </div>
+
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <div class="min-h-screen lg:grid lg:grid-cols-[19rem_minmax(0,1fr)]">
+            <aside class="hidden lg:block">
+                <div class="app-sidebar sticky top-0 h-screen px-5 py-6">
+                    <div class="flex items-center gap-4 px-3">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/30">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-primary-500 dark:text-primary-300">FitTracker</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Train smarter, recover better.</p>
+                        </div>
+                    </div>
+
+                    <nav class="mt-8 space-y-2">
+                        <a asp-page="/Index" class="@NavClasses("/Index")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            <span>Dashboard</span>
+                        </a>
+                        <a asp-page="/Workouts/Start" class="@NavClasses("/Workouts")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Workouts</span>
+                        </a>
+                        <a asp-page="/Exercises/Index" class="@NavClasses("/Exercises")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <span>Exercises</span>
+                        </a>
+                        <a asp-page="/Analytics/Daily" class="@NavClasses("/Analytics")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            <span>Analytics</span>
+                        </a>
+                        <a asp-area="Identity" asp-page="/Account/Manage/Index" class="@NavClasses("/Identity/Account/Manage")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A11.953 11.953 0 0112 15c2.5 0 4.824.767 6.879 2.075M15 11a3 3 0 11-6 0 3 3 0 016 0zm6 1a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Profile</span>
+                        </a>
+                    </nav>
+
+                    <div class="mt-auto space-y-4 px-3">
+                        <div class="rounded-[1.75rem] border border-white/70 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-900/85">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Signed in</p>
+                            <p class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@displayName</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Keep your streak going.</p>
+                        </div>
+                        <button type="button" @@click="darkMode = !darkMode" class="btn btn-secondary w-full justify-between">
+                            <span x-text="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"></span>
+                            <svg x-show="!darkMode" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                            <svg x-show="darkMode" x-cloak class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        </button>
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout">
+                            <button type="submit" class="btn btn-danger w-full justify-center">Sign out</button>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="min-w-0">
+                <header class="sticky top-0 z-40 border-b border-white/60 bg-slate-100/80 backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-slate-950/80">
+                    <div class="flex items-center justify-between px-4 py-4 sm:px-6">
+                        <button type="button" @@click="sidebarOpen = true" class="btn btn-secondary h-11 w-11 rounded-2xl p-0">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <div class="text-center">
+                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-500 dark:text-primary-300">FitTracker</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">@ViewData["Title"]</p>
+                        </div>
+                        <button type="button" @@click="darkMode = !darkMode" class="btn btn-secondary h-11 w-11 rounded-2xl p-0">
+                            <svg x-show="!darkMode" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                            <svg x-show="darkMode" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        </button>
+                    </div>
+                </header>
+
+                <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm lg:hidden" @@click="sidebarOpen = false"></div>
+
+                <aside x-show="sidebarOpen"
+                       x-cloak
+                       x-transition:enter="transition ease-out duration-300"
+                       x-transition:enter-start="-translate-x-full opacity-0"
+                       x-transition:enter-end="translate-x-0 opacity-100"
+                       x-transition:leave="transition ease-in duration-200"
+                       x-transition:leave-start="translate-x-0 opacity-100"
+                       x-transition:leave-end="-translate-x-full opacity-0"
+                       class="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] px-4 py-4 lg:hidden">
+                    <div class="app-sidebar h-full rounded-[2rem] px-5 py-6">
+                        <div class="mb-8 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-500 dark:text-primary-300">FitTracker</p>
+                                <p class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@displayName</p>
+                            </div>
+                            <button type="button" @@click="sidebarOpen = false" class="btn btn-secondary h-11 w-11 rounded-2xl p-0">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+
+                        <nav class="space-y-2">
+                            <a asp-page="/Index" class="@NavClasses("/Index")" @@click="sidebarOpen = false">Dashboard</a>
+                            <a asp-page="/Workouts/Start" class="@NavClasses("/Workouts")" @@click="sidebarOpen = false">Workouts</a>
+                            <a asp-page="/Exercises/Index" class="@NavClasses("/Exercises")" @@click="sidebarOpen = false">Exercises</a>
+                            <a asp-page="/Analytics/Daily" class="@NavClasses("/Analytics")" @@click="sidebarOpen = false">Analytics</a>
+                            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="@NavClasses("/Identity/Account/Manage")" @@click="sidebarOpen = false">Profile</a>
+                        </nav>
+
+                        <div class="mt-auto space-y-3">
+                            <button type="button" @@click="darkMode = !darkMode" class="btn btn-secondary w-full">Toggle theme</button>
+                            <form method="post" asp-area="Identity" asp-page="/Account/Logout">
+                                <button type="submit" class="btn btn-danger w-full justify-center">Sign out</button>
+                            </form>
+                        </div>
+                    </div>
+                </aside>
+
+                <main role="main" class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                    @RenderBody()
+                </main>
+
+                <footer class="px-4 pb-8 pt-2 text-sm text-slate-500 sm:px-6 lg:px-8 dark:text-slate-400">
+                    <div class="mx-auto flex max-w-7xl flex-col gap-3 rounded-[1.75rem] border border-white/70 bg-white/65 px-5 py-4 backdrop-blur lg:flex-row lg:items-center lg:justify-between dark:border-white/10 dark:bg-slate-950/65">
+                        <div>
+                            <p class="font-semibold text-slate-900 dark:text-white">FitTracker</p>
+                            <p>Built for faster logging, cleaner history, and better daily insight.</p>
+                        </div>
+                        <p>&copy; @DateTime.Now.Year FitTracker</p>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+            <header class="mx-auto flex w-full max-w-7xl items-center justify-between rounded-[1.75rem] border border-white/70 bg-white/70 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
+                <a asp-page="/Index" class="flex items-center gap-3">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/30">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-500 dark:text-primary-300">FitTracker</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Fitness tracking without the noise.</p>
+                    </div>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" @@click="darkMode = !darkMode" class="btn btn-secondary h-11 w-11 rounded-2xl p-0">
+                        <svg x-show="!darkMode" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <svg x-show="darkMode" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </button>
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary hidden sm:inline-flex">Log in</a>
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary">Create account</a>
+                </div>
+            </header>
+
+            <main role="main" class="flex min-h-[calc(100vh-9rem)] items-center justify-center py-8">
+                @RenderBody()
+            </main>
+
+            <footer class="mx-auto max-w-7xl px-2 pb-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                <p>&copy; @DateTime.Now.Year FitTracker. A cleaner workout log for consistent training.</p>
+            </footer>
+        </div>
+    }
+
+    <script>
+        function layoutShell() {
+            return {
+                darkMode: false,
+                sidebarOpen: false,
+                init() {
+                    this.darkMode = localStorage.getItem('darkMode') === 'true';
+                    this.applyTheme();
+                    this.$watch('darkMode', value => {
+                        localStorage.setItem('darkMode', value);
+                        this.applyTheme();
+                    });
+                },
+                applyTheme() {
+                    document.documentElement.classList.toggle('dark', this.darkMode);
+                    document.documentElement.style.colorScheme = this.darkMode ? 'dark' : 'light';
+                }
+            }
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,561 @@
+# FitTracker Implementation Plan
+
+This document tracks the implementation progress of the FitTracker application. Check off items as they are completed.
+
+## Project Setup
+
+### Initial Configuration
+- [x] Create ASP.NET Core Razor Pages project (.NET 10)
+- [x] Configure SQLite database connection
+- [x] Set up Entity Framework Core
+- [x] Configure Microsoft Identity for authentication
+- [x] Set up project structure (folders for Pages, Models, Data, Services)
+- [x] Add `.gitignore` for .NET projects
+- [ ] Initialize Git repository
+
+### Frontend Setup
+- [x] Install and configure Tailwind CSS 4
+- [x] Set up Alpine.js
+- [x] Set up HTMX
+- [x] Create base layout with dark mode support
+- [x] Implement dark mode toggle functionality
+- [x] Create responsive navigation component
+- [x] Set up CSS build pipeline
+
+### Development Tools
+- [x] Configure development environment
+- [x] Set up database migrations
+- [x] Configure logging
+- [ ] Set up development HTTPS certificate
+
+---
+
+## Phase 1: MVP (Minimum Viable Product)
+
+### Database Schema & Models
+
+#### Core Entities
+- [x] Create `ApplicationUser` (extends IdentityUser)
+  - [x] Add custom properties (preferences, settings)
+- [x] Create `Exercise` model
+  - [x] Id, Name, Category, MuscleGroups, Equipment, Description, VideoUrl
+- [x] Create `Workout` model
+  - [x] Id, UserId, Date, Duration, Notes, CreatedAt
+- [x] Create `WorkoutExercise` model
+  - [x] Id, WorkoutId, ExerciseId, Order, Notes
+- [x] Create `Set` model
+  - [x] Id, WorkoutExerciseId, SetNumber, Reps, Weight, Duration, RestTime, RPE
+- [x] Create `UserProfile` model (integrated into ApplicationUser)
+  - [x] UserId, PreferredUnits (lbs/kg), DefaultRestTimer, Goals
+
+#### Database Context
+- [x] Create `ApplicationDbContext`
+- [x] Configure entity relationships
+- [x] Add data annotations and fluent API configurations
+- [x] Create initial migration
+- [x] Apply migration to database
+
+#### Seed Data
+- [x] Create exercise seed data (50-100 exercises)
+  - [x] Chest exercises
+  - [x] Back exercises
+  - [x] Leg exercises
+  - [x] Shoulder exercises
+  - [x] Arm exercises
+  - [x] Core exercises
+  - [x] Cardio exercises
+- [x] Create database seeder class
+- [x] Run seed data on application start (development only)
+
+### Authentication & User Management
+
+- [x] Configure Identity services in `Program.cs`
+- [x] Create Register page (`/Account/Register`)
+- [x] Create Login page (`/Account/Login`)
+- [x] Create Logout functionality
+- [x] Create Account/Manage page (basic profile settings)
+- [ ] Implement email confirmation (optional for MVP)
+- [ ] Add password reset functionality
+- [ ] Create user profile setup wizard (first-time users)
+
+### Core Pages - Dashboard
+
+- [x] Create Dashboard page (`/Index` or `/Dashboard`)
+  - [x] Display today's date
+  - [x] Show today's planned workout (if any)
+  - [x] Show quick stats (workouts this week, current streak)
+  - [x] "Start Workout" button
+  - [x] Recent workout history (last 5 workouts)
+- [x] Style dashboard with Tailwind CSS
+- [x] Make responsive for mobile/tablet/desktop
+- [x] Add dark mode styling
+
+### Core Pages - Exercise Library
+
+- [x] Create Exercise Library page (`/Exercises/Index`)
+  - [x] List all exercises
+  - [x] Group by category (Strength, Cardio, Flexibility, etc.)
+  - [x] Search functionality (HTMX)
+  - [x] Filter by muscle group
+  - [x] Filter by equipment
+- [x] Create Exercise Details page (`/Exercises/Details/{id}`)
+  - [x] Display exercise information
+  - [x] Show video link (if available)
+  - [x] Show usage history (how many times logged)
+- [x] Implement HTMX for live search
+- [x] Style with Tailwind CSS
+- [x] Make responsive
+
+### Core Pages - Workout Logging
+
+- [x] Create Start Workout page (`/Workouts/Start`)
+  - [x] Select exercises from library
+  - [x] Quick log interface for adding sets
+  - [x] Display current exercise
+  - [x] Add set with reps and weight
+  - [ ] Built-in rest timer between sets
+  - [x] Notes field (optional)
+  - [x] "Complete Workout" button
+- [x] Implement HTMX for dynamic set additions (no page refresh)
+- [ ] Create rest timer functionality with Alpine.js
+  - [ ] Configurable timer duration
+  - [ ] Visual countdown
+  - [ ] Sound/vibration notification (optional)
+- [ ] Auto-save progress (prevent data loss)
+- [ ] Progressive overload suggestions
+  - [ ] Show last workout data for the exercise
+  - [ ] Suggest weight/rep increase
+- [x] Style with large tap targets for mobile
+- [x] Make fully responsive
+
+### Core Pages - Workout History
+
+- [x] Create Workout History page (`/Workouts/History`)
+  - [x] List all completed workouts
+  - [x] Show date, duration, exercises
+  - [ ] Pagination (10-20 per page)
+  - [ ] Filter by date range
+  - [ ] Search functionality
+- [x] Create Workout Details page (`/Workouts/Details/{id}`)
+  - [x] Show all exercises and sets
+  - [x] Display workout notes
+  - [x] Option to delete workout
+  - [ ] Option to "Repeat Workout" (start new with same exercises)
+- [x] Style with Tailwind CSS
+- [x] Make responsive
+
+### Daily Summary
+
+- [x] Create Daily Summary component
+  - [x] Exercises completed today
+  - [x] Total volume (sets × reps × weight)
+  - [x] Total workout duration
+  - [x] Calories burned estimate
+- [x] Display on Dashboard
+- [x] Create dedicated Daily Summary page (`/Analytics/Daily`)
+- [x] Style with charts/graphs
+- [x] Make responsive
+
+### Services & Business Logic
+
+- [ ] Create `WorkoutService`
+  - [ ] Start workout
+  - [ ] Add exercise to workout
+  - [ ] Log set
+  - [ ] Complete workout
+  - [ ] Calculate workout volume
+  - [ ] Get progressive overload suggestions
+- [ ] Create `ExerciseService`
+  - [ ] Search exercises
+  - [ ] Filter exercises
+  - [ ] Get exercise history for user
+- [x] Create `AnalyticsService`
+  - [x] Calculate daily summary
+  - [x] Calculate total volume
+  - [x] Estimate calories burned
+- [ ] Add unit tests for services (optional for MVP)
+
+### UI Components
+
+- [x] Create reusable components (Razor partials)
+  - [x] Exercise card
+  - [x] Workout card
+  - [ ] Set input component
+  - [ ] Timer component
+  - [x] Statistics card
+  - [x] Loading spinner
+  - [x] Empty state components
+- [x] Style all components with Tailwind CSS
+- [x] Ensure dark mode compatibility
+
+### Testing & Bug Fixes
+
+- [ ] Test user registration flow
+- [ ] Test login/logout flow
+- [ ] Test starting a workout
+- [ ] Test logging sets and exercises
+- [ ] Test completing a workout
+- [ ] Test viewing workout history
+- [ ] Test exercise search and filters
+- [ ] Test dark mode toggle
+- [ ] Test responsive design on multiple devices
+- [ ] Fix any discovered bugs
+- [ ] Performance testing with larger datasets
+
+### Documentation
+
+- [x] Write README.md with setup instructions
+- [ ] Document database schema
+- [ ] Add code comments where necessary
+- [ ] Create user guide (optional)
+
+---
+
+## Phase 2: Enhanced Tracking
+
+### Workout Templates
+
+- [ ] Create `WorkoutTemplate` model
+  - [ ] Id, UserId, Name, Description, IsActive
+- [ ] Create `WorkoutTemplateExercise` model
+  - [ ] Id, TemplateId, ExerciseId, Order, DefaultSets, DefaultReps, Notes
+- [ ] Add database migration
+- [ ] Create Templates page (`/Templates/Index`)
+  - [ ] List all user templates
+  - [ ] Create new template
+  - [ ] Edit template
+  - [ ] Delete template
+- [ ] Create Template Builder page (`/Templates/Create`)
+  - [ ] Add exercises to template
+  - [ ] Set default sets/reps
+  - [ ] Reorder exercises
+- [ ] Add "Start from Template" option to dashboard
+- [ ] Style with Tailwind CSS
+
+### Calendar View
+
+- [ ] Create Calendar page (`/Calendar`)
+  - [ ] Display monthly calendar
+  - [ ] Show workouts on completed dates
+  - [ ] Show planned workouts
+  - [ ] Click date to plan/view workout
+- [ ] Implement calendar with Alpine.js or library
+- [ ] Add drag-and-drop for planning (optional)
+- [ ] Style with Tailwind CSS
+- [ ] Make responsive (mobile view: list/agenda)
+
+### Personal Records Tracking
+
+- [ ] Create `PersonalRecord` model
+  - [ ] Id, UserId, ExerciseId, Weight, Reps, Date, OneRepMax
+- [ ] Add database migration
+- [ ] Implement PR detection logic
+  - [ ] Automatically detect PRs when workout is completed
+  - [ ] Create PR entry
+- [ ] Create PR celebration UI (toast/modal)
+- [ ] Create PRs page (`/PRs`)
+  - [ ] List all PRs by exercise
+  - [ ] Filter by date range
+  - [ ] Show progression over time
+- [ ] Display PRs on exercise details page
+- [ ] Style with Tailwind CSS
+
+### Weekly & Monthly Summaries
+
+- [ ] Extend `AnalyticsService` for weekly/monthly calculations
+  - [ ] Total workouts in period
+  - [ ] Workout frequency
+  - [ ] Volume comparison (week-over-week, month-over-month)
+  - [ ] Muscle group distribution
+  - [ ] Rest days
+- [ ] Create Weekly Summary page (`/Analytics/Weekly`)
+  - [ ] Display week picker
+  - [ ] Show all weekly stats
+  - [ ] Week-over-week charts
+- [ ] Create Monthly Summary page (`/Analytics/Monthly`)
+  - [ ] Display month picker
+  - [ ] Show all monthly stats
+  - [ ] Month-over-month charts
+  - [ ] Adherence percentage
+- [ ] Add charts using chart library (Chart.js or similar)
+- [ ] Style with Tailwind CSS
+- [ ] Make responsive
+
+### Progress Charts
+
+- [ ] Implement charting library
+- [ ] Create Exercise Progress page (`/Progress/Exercise/{id}`)
+  - [ ] Line chart of weight progression over time
+  - [ ] Volume progression
+  - [ ] Show PRs on chart
+- [ ] Create Overall Progress page (`/Progress`)
+  - [ ] Total volume over time
+  - [ ] Workout frequency over time
+  - [ ] Body weight over time (if tracked)
+- [ ] Make charts dark mode compatible
+- [ ] Make charts responsive
+
+---
+
+## Phase 3: Advanced Features
+
+### Body Measurement Tracking
+
+- [ ] Create `BodyMeasurement` model
+  - [ ] Id, UserId, Date, Weight, BodyFatPercentage, Chest, Waist, Arms, Legs, Notes
+- [ ] Add database migration
+- [ ] Create Measurements page (`/Measurements`)
+  - [ ] List all measurements
+  - [ ] Add new measurement
+  - [ ] Edit measurement
+  - [ ] Delete measurement
+- [ ] Create charts for measurement trends
+- [ ] Add to monthly summary
+- [ ] Style with Tailwind CSS
+
+### Progress Photos
+
+- [ ] Create `ProgressPhoto` model
+  - [ ] Id, UserId, Date, PhotoPath, Notes
+- [ ] Add database migration
+- [ ] Create Progress Photos page (`/Photos`)
+  - [ ] Upload photos
+  - [ ] View photo gallery
+  - [ ] Compare photos (before/after view)
+  - [ ] Delete photos
+- [ ] Implement file upload handling
+- [ ] Store photos securely
+- [ ] Add image optimization
+- [ ] Style with Tailwind CSS
+
+### Advanced Analytics
+
+- [ ] Create Analytics Dashboard (`/Analytics`)
+  - [ ] Most worked muscle groups
+  - [ ] Least worked muscle groups
+  - [ ] Workout duration averages
+  - [ ] Volume trends
+  - [ ] PR timeline
+  - [ ] Workout consistency (heatmap)
+- [ ] Implement advanced calculations
+- [ ] Create interactive charts
+- [ ] Export analytics to PDF (optional)
+- [ ] Style with Tailwind CSS
+
+### 1RM Estimates
+
+- [ ] Implement 1RM calculation formulas
+  - [ ] Epley formula
+  - [ ] Brzycki formula
+  - [ ] Average of multiple formulas
+- [ ] Display 1RM estimates on exercise pages
+- [ ] Show 1RM progression over time
+- [ ] Add to PR tracking
+- [ ] Create 1RM calculator tool page
+
+### Workout Suggestions
+
+- [ ] Implement suggestion algorithm
+  - [ ] Suggest exercises based on least-worked muscle groups
+  - [ ] Suggest workouts based on templates and history
+- [ ] Display suggestions on dashboard
+- [ ] Add "Use Suggestion" quick action
+- [ ] Style with Tailwind CSS
+
+### Data Export
+
+- [ ] Create Export page (`/Export`)
+  - [ ] Export workouts to CSV
+  - [ ] Export workouts to JSON
+  - [ ] Export measurements to CSV
+  - [ ] Export PRs to CSV
+  - [ ] Date range filter for export
+- [ ] Implement export functionality
+- [ ] Add download trigger
+- [ ] Style with Tailwind CSS
+
+---
+
+## Phase 4: Enhancements & Polish
+
+### Achievements & Gamification
+
+- [ ] Create `Achievement` model
+  - [ ] Id, Name, Description, Icon, Criteria
+- [ ] Create `UserAchievement` model
+  - [ ] Id, UserId, AchievementId, UnlockedDate
+- [ ] Add database migration
+- [ ] Define achievement criteria
+  - [ ] First workout
+  - [ ] 10 workouts
+  - [ ] 30-day streak
+  - [ ] 100 total sets
+  - [ ] First PR
+  - [ ] 10 PRs
+  - [ ] 1M total volume
+- [ ] Implement achievement detection logic
+- [ ] Create achievement unlock notification
+- [ ] Create Achievements page (`/Achievements`)
+  - [ ] Show all achievements (locked/unlocked)
+  - [ ] Show progress to locked achievements
+- [ ] Style with Tailwind CSS
+
+### Challenges
+
+- [ ] Create `Challenge` model
+  - [ ] Id, Name, Description, StartDate, EndDate, Goal, GoalType
+- [ ] Create `UserChallenge` model
+  - [ ] Id, UserId, ChallengeId, Progress, CompletedDate
+- [ ] Add database migration
+- [ ] Create Challenges page (`/Challenges`)
+  - [ ] List available challenges
+  - [ ] Join challenge
+  - [ ] Track progress
+- [ ] Implement challenge types
+  - [ ] 30-day workout challenge
+  - [ ] Progressive overload challenge
+  - [ ] Volume challenge
+- [ ] Display active challenges on dashboard
+- [ ] Style with Tailwind CSS
+
+### Mobile Optimizations
+
+- [ ] Audit mobile performance
+- [ ] Optimize touch targets (minimum 44×44px)
+- [ ] Implement swipe gestures with Alpine.js
+  - [ ] Swipe to navigate between workouts
+  - [ ] Swipe to delete items
+- [ ] Add haptic feedback (where supported)
+- [ ] Optimize page load times
+- [ ] Add app install prompt for PWA
+- [ ] Test on multiple mobile devices
+
+### PWA Support
+
+- [ ] Create `manifest.json`
+  - [ ] App name, icons, colors
+  - [ ] Display mode (standalone)
+  - [ ] Start URL
+- [ ] Create service worker
+  - [ ] Cache static assets
+  - [ ] Offline fallback page
+- [ ] Add installable app prompt
+- [ ] Test PWA installation
+- [ ] Add app icons (various sizes)
+
+### Advanced 1RM Tracking
+
+- [ ] Create 1RM history tracking
+- [ ] Display 1RM progression charts
+- [ ] Add 1RM predictions based on trends
+- [ ] Create 1RM leaderboard (personal, by exercise)
+- [ ] Style with Tailwind CSS
+
+### AI-Based Workout Suggestions
+
+- [ ] Implement ML model or rule-based AI
+- [ ] Analyze workout history patterns
+- [ ] Suggest optimal rest days
+- [ ] Suggest exercises based on:
+  - [ ] Muscle recovery time
+  - [ ] Last worked date
+  - [ ] User preferences
+  - [ ] Progressive overload opportunities
+- [ ] Display AI suggestions on dashboard
+- [ ] Add "Accept Suggestion" quick action
+- [ ] Style with Tailwind CSS
+
+### Performance Improvements
+
+- [ ] Implement query optimization
+  - [ ] Add database indexes
+  - [ ] Use eager loading where appropriate
+  - [ ] Implement caching for frequently accessed data
+- [ ] Optimize front-end bundle size
+- [ ] Lazy load images
+- [ ] Implement pagination on all list views
+- [ ] Run performance profiler
+- [ ] Fix any bottlenecks
+
+### Accessibility Enhancements
+
+- [ ] Audit with accessibility tools (Lighthouse, axe)
+- [ ] Ensure proper ARIA labels
+- [ ] Implement keyboard navigation
+  - [ ] Tab order
+  - [ ] Keyboard shortcuts for common actions
+- [ ] Test with screen reader
+- [ ] Add skip links
+- [ ] Ensure proper heading hierarchy
+- [ ] Add focus indicators
+- [ ] Support high contrast mode
+- [ ] Allow font size adjustment
+- [ ] Fix any accessibility issues
+
+### Final Polish
+
+- [ ] Code review and refactoring
+- [ ] Remove unused code
+- [ ] Optimize CSS (remove unused Tailwind classes)
+- [ ] Update all documentation
+- [ ] Create deployment guide
+- [ ] Add error logging and monitoring
+- [ ] Implement user feedback mechanism
+- [ ] Create help/FAQ section
+- [ ] Final testing across all features
+- [ ] Security audit
+- [ ] Performance testing with large datasets
+
+---
+
+## Deployment
+
+### Production Setup
+- [ ] Choose hosting provider
+- [ ] Set up production database
+- [ ] Configure production environment variables
+- [ ] Set up SSL certificate
+- [ ] Configure CORS policies
+- [ ] Set up email service (if needed)
+- [ ] Configure logging and monitoring
+- [ ] Set up automated backups
+
+### CI/CD Pipeline
+- [ ] Set up GitHub Actions or Azure DevOps
+- [ ] Configure automated builds
+- [ ] Configure automated tests
+- [ ] Set up automated deployment
+- [ ] Configure rollback procedures
+
+### Launch
+- [ ] Deploy to production
+- [ ] Smoke test production environment
+- [ ] Monitor for errors
+- [ ] Announce launch
+- [ ] Gather initial user feedback
+
+---
+
+## Post-Launch
+
+### Monitoring & Maintenance
+- [ ] Monitor application performance
+- [ ] Monitor error logs
+- [ ] Track success metrics
+- [ ] Collect user feedback
+- [ ] Plan future enhancements based on feedback
+
+### Future Considerations
+- [ ] Review "Features to Consider" from Idea document
+- [ ] Prioritize new features based on user demand
+- [ ] Plan next development phase
+
+---
+
+## Notes
+
+- This is a living document - update as implementation progresses
+- Checkboxes can be marked as you complete each task
+- Feel free to reorder tasks based on dependencies and priorities
+- Some tasks may be split into smaller subtasks as needed
+- Testing should be ongoing throughout all phases

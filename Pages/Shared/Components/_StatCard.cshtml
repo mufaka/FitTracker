@@ -1,0 +1,16 @@
+@model (string Title, string Value, string Color)
+@{
+    var valueClasses = Model.Color?.ToLowerInvariant() switch
+    {
+        "green" => "text-emerald-600 dark:text-emerald-300",
+        "purple" => "text-violet-600 dark:text-violet-300",
+        "blue" => "text-primary-600 dark:text-primary-300",
+        "orange" => "text-amber-600 dark:text-amber-300",
+        _ => "text-slate-950 dark:text-white"
+    };
+}
+
+<div class="metric-card">
+    <p class="metric-label">@Model.Title</p>
+    <p class="metric-value @valueClasses">@Model.Value</p>
+</div>

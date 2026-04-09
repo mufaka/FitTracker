@@ -1,0 +1,111 @@
+@page
+@model DailyModel
+@{
+    ViewData["Title"] = "Daily Summary";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Daily analytics</p>
+                <h1 class="page-title">Your day at a glance.</h1>
+                <p class="page-description">Track today's workload, scan session details, and move quickly between training days.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="?date=@Model.SelectedDate.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-secondary">← Previous</a>
+                <input type="date"
+                       value="@Model.SelectedDate.ToString("yyyy-MM-dd")"
+                       onchange="window.location.href='?date=' + this.value"
+                       class="input min-w-44" />
+                <a href="?date=@Model.SelectedDate.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-secondary">Next →</a>
+            </div>
+        </div>
+    </section>
+
+    <partial name="_DailySummary" model="Model.Summary" />
+
+    @if (Model.DaysWorkouts.Any())
+    {
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Sessions</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Workouts on @Model.SelectedDate.ToString("MMM dd, yyyy")</h2>
+                </div>
+                <span class="chip">@Model.DaysWorkouts.Count workout@(Model.DaysWorkouts.Count == 1 ? string.Empty : "s")</span>
+            </div>
+
+            <div class="space-y-5">
+                @foreach (var workout in Model.DaysWorkouts)
+                {
+                    <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold text-slate-950 dark:text-white">Workout @(Model.DaysWorkouts.IndexOf(workout) + 1)</h3>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@workout.Date.ToString("h:mm tt") · @workout.Duration minutes</p>
+                            </div>
+                            <a asp-page="/Workouts/Details" asp-route-id="@workout.Id" class="btn btn-secondary">View details</a>
+                        </div>
+
+                        <div class="mt-5 space-y-3">
+                            @foreach (var we in workout.WorkoutExercises.OrderBy(x => x.Order))
+                            {
+                                var totalVolume = we.Sets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0));
+                                <div class="flex flex-col gap-2 rounded-[1.25rem] border border-slate-200/70 bg-white/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-950/50">
+                                    <div>
+                                        <p class="font-medium text-slate-950 dark:text-white">@we.Exercise.Name</p>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">@we.Sets.Count sets · @we.Sets.Sum(s => s.Reps ?? 0) reps</p>
+                                    </div>
+                                    <div class="text-sm font-semibold text-primary-600 dark:text-primary-300">@totalVolume.ToString("N0") lbs volume</div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(workout.Notes))
+                        {
+                            <div class="mt-4 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300">
+                                “@workout.Notes”
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Weekly context</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">This week at a glance</h2>
+            </div>
+            <span class="chip">Week of @Model.WeekStart.ToString("MMM dd")</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+            @for (int i = 0; i < 7; i++)
+            {
+                var dayOfWeek = Model.WeekStart.AddDays(i);
+                var hasWorkout = Model.WeekWorkoutDays.Contains(dayOfWeek.Date);
+                var isToday = dayOfWeek.Date == DateTime.UtcNow.Date;
+                var isSelected = dayOfWeek.Date == Model.SelectedDate.Date;
+                var cardClasses = isSelected
+                    ? "border-primary-500 bg-primary-500 text-white"
+                    : hasWorkout
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
+                        : "border-slate-200 bg-white/80 text-slate-700 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200";
+
+                <a href="?date=@dayOfWeek.ToString("yyyy-MM-dd")" class="rounded-[1.5rem] border p-4 text-center transition hover:-translate-y-0.5 hover:shadow-lg @cardClasses">
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] opacity-80">@dayOfWeek.ToString("ddd")</div>
+                    <div class="mt-3 text-3xl font-semibold">@dayOfWeek.Day</div>
+                    <div class="mt-3 text-xs font-medium uppercase tracking-[0.18em] opacity-80">@(hasWorkout ? "Workout" : "Rest")</div>
+                    @if (isToday)
+                    {
+                        <div class="mt-2 text-xs font-semibold @(isSelected ? "text-white/80" : "text-primary-500 dark:text-primary-300")">Today</div>
+                    }
+                </a>
+            }
+        </div>
+    </section>
+</div>

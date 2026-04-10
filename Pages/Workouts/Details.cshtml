@@ -23,9 +23,14 @@
                         <span class="chip">@Model.TotalSets sets</span>
                     </div>
                 </div>
-                <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Are you sure you want to delete this workout?')">
-                    <button type="submit" class="btn btn-danger">Delete workout</button>
-                </form>
+                <div class="flex flex-wrap gap-3">
+                    <form method="post" asp-page-handler="Repeat">
+                        <button type="submit" class="btn btn-primary">Repeat workout</button>
+                    </form>
+                    <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Are you sure you want to delete this workout?')">
+                        <button type="submit" class="btn btn-danger">Delete workout</button>
+                    </form>
+                </div>
             </div>
         </section>
 
@@ -126,7 +131,9 @@
         </section>
 
         <div class="flex flex-wrap gap-3">
-            <a asp-page="/Workouts/Start" class="btn btn-primary">Start new workout</a>
+            <form method="post" asp-page-handler="Repeat">
+                <button type="submit" class="btn btn-primary">Repeat workout</button>
+            </form>
             <a asp-page="/Workouts/History" class="btn btn-secondary">Back to history</a>
         </div>
     }

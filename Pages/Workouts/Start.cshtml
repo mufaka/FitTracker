@@ -4,7 +4,7 @@
     ViewData["Title"] = "Start Workout";
 }
 
-<div class="page-shell" x-data="workoutTracker()">
+<div class="page-shell" x-data="workoutTracker(@(Model.WorkoutId ?? 0), @Model.DefaultRestTimerSeconds)">
     <section class="hero-card">
         <div class="page-header gap-8">
             <div>
@@ -18,6 +18,60 @@
             </div>
         </div>
     </section>
+
+    @if (Model.Workout == null || !Model.Workout.IsCompleted)
+    {
+        <section class="surface-card" x-cloak>
+            <div class="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                    <p class="page-eyebrow">Rest timer</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Recover between sets</h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">The timer starts automatically when you add a set and continues even after the page refreshes.</p>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-[minmax(0,10rem)_auto_auto_auto] sm:items-end">
+                    <div>
+                        <label class="input-label" for="restDuration">Duration (seconds)</label>
+                        <input id="restDuration"
+                               type="number"
+                               min="15"
+                               step="15"
+                               class="input"
+                               x-model.number="durationSeconds"
+                               x-on:change="updateDuration()" />
+                    </div>
+                    <button type="button" class="btn btn-secondary" x-on:click="startTimer()" x-text="isRunning ? 'Restart timer' : 'Start timer'"></button>
+                    <button type="button" class="btn btn-secondary" x-on:click="togglePause()" x-bind:disabled="!hasTimer" x-bind:class="!hasTimer ? 'opacity-50 cursor-not-allowed' : ''" x-text="isRunning ? 'Pause' : 'Resume'"></button>
+                    <button type="button" class="btn btn-secondary" x-on:click="resetTimer()" x-bind:disabled="!hasTimer && !completed" x-bind:class="!hasTimer && !completed ? 'opacity-50 cursor-not-allowed' : ''">Reset</button>
+                </div>
+            </div>
+
+            <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,12rem)] lg:items-center">
+                <div>
+                    <div class="flex items-center justify-between text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <span x-text="statusText"></span>
+                        <span x-text="progressLabel"></span>
+                    </div>
+                    <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                        <div class="h-full rounded-full bg-primary-500 transition-all duration-500"
+                             x-bind:style="`width: ${progressPercentage}%`"></div>
+                    </div>
+                </div>
+
+                <div class="rounded-[1.75rem] border border-primary-200/80 bg-primary-50/80 px-5 py-4 text-center dark:border-primary-500/20 dark:bg-primary-500/10">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary-600 dark:text-primary-300">Time remaining</p>
+                    <p class="mt-3 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white" x-text="formattedTime"></p>
+                </div>
+            </div>
+
+            <div class="mt-5 flex flex-wrap gap-3">
+                <button type="button" class="chip" x-on:click="setPreset(60)">60 sec</button>
+                <button type="button" class="chip" x-on:click="setPreset(90)">90 sec</button>
+                <button type="button" class="chip" x-on:click="setPreset(120)">120 sec</button>
+                <span class="chip chip-success" x-show="completed" x-cloak>Rest complete</span>
+            </div>
+        </section>
+    }
 
     <form method="post" class="space-y-8">
         <input type="hidden" asp-for="WorkoutId" />
@@ -36,7 +90,9 @@
                 <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                     <div>
                         <label class="input-label" asp-for="SelectedExerciseId">Exercise</label>
-                        <select asp-for="SelectedExerciseId" class="input">
+                        <select asp-for="SelectedExerciseId" class="input"
+                                x-init="restoreElementValue($el)"
+                                x-on:change="saveElementValue($el)">
                             <option value="">Select an exercise...</option>
                             @foreach (var category in Model.ExercisesByCategory)
                             {
@@ -60,6 +116,7 @@
                 @for (int i = 0; i < Model.WorkoutExercises.Count; i++)
                 {
                     var workoutExercise = Model.WorkoutExercises[i];
+                    var hasSuggestion = Model.ProgressiveOverloadSuggestions.TryGetValue(workoutExercise.ExerciseId, out var suggestion);
                     <section class="surface-card">
                         <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div>
@@ -80,6 +137,46 @@
                                 </button>
                             }
                         </div>
+
+                        @if (hasSuggestion && suggestion != null)
+                        {
+                            <div class="mb-6 rounded-[1.75rem] border border-primary-200/80 bg-primary-50/80 p-5 dark:border-primary-500/20 dark:bg-primary-500/10">
+                                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                    <div>
+                                        <p class="page-eyebrow">Progressive overload</p>
+                                        <h3 class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">Build on your last session</h3>
+                                        <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">@suggestion.Recommendation</p>
+                                    </div>
+                                    <span class="chip chip-primary">@suggestion.LastPerformedOn.ToString("MMM dd")</span>
+                                </div>
+
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <span class="chip">@suggestion.LastSetCount set@(suggestion.LastSetCount == 1 ? string.Empty : "s") last time</span>
+                                    @if (suggestion.LastTopWeight.HasValue && suggestion.LastTopReps.HasValue)
+                                    {
+                                        <span class="chip">Top set: @suggestion.LastTopWeight.Value.ToString("0.##") @Model.UserUnits × @suggestion.LastTopReps.Value</span>
+                                    }
+                                    else if (suggestion.LastTopReps.HasValue)
+                                    {
+                                        <span class="chip">Best set: @suggestion.LastTopReps.Value reps</span>
+                                    }
+
+                                    @if (suggestion.LastTotalVolume > 0)
+                                    {
+                                        <span class="chip">Volume: @suggestion.LastTotalVolume.ToString("0") @Model.UserUnits</span>
+                                    }
+
+                                    @if (suggestion.SuggestedWeight.HasValue && suggestion.SuggestedReps.HasValue)
+                                    {
+                                        <span class="chip chip-success">Target: @suggestion.SuggestedWeight.Value.ToString("0.##") @Model.UserUnits × @suggestion.SuggestedReps.Value</span>
+                                    }
+                                    else if (suggestion.SuggestedReps.HasValue)
+                                    {
+                                        <span class="chip chip-success">Target: @suggestion.SuggestedReps.Value reps</span>
+                                    }
+                                </div>
+                            </div>
+                        }
 
                         @if (workoutExercise.Sets.Any())
                         {
@@ -131,19 +228,38 @@
                                     <input type="hidden" name="WorkoutExerciseId" value="@workoutExercise.Id" />
                                     <div>
                                         <label class="input-label">Weight (lbs)</label>
-                                        <input type="number" name="Weight_@workoutExercise.Id" step="0.01" class="input" placeholder="0" />
+                                        <input type="number"
+                                               name="Weight_@workoutExercise.Id"
+                                               step="0.01"
+                                               class="input"
+                                               placeholder="0"
+                                               x-init="restoreElementValue($el)"
+                                               x-on:input="saveElementValue($el)" />
                                     </div>
                                     <div>
                                         <label class="input-label">Reps</label>
-                                        <input type="number" name="Reps_@workoutExercise.Id" class="input" placeholder="0" />
+                                        <input type="number"
+                                               name="Reps_@workoutExercise.Id"
+                                               class="input"
+                                               placeholder="0"
+                                               x-init="restoreElementValue($el)"
+                                               x-on:input="saveElementValue($el)" />
                                     </div>
                                     <div>
                                         <label class="input-label">RPE (1-10)</label>
-                                        <input type="number" name="RPE_@workoutExercise.Id" min="1" max="10" class="input" placeholder="7" />
+                                        <input type="number"
+                                               name="RPE_@workoutExercise.Id"
+                                               min="1"
+                                               max="10"
+                                               class="input"
+                                               placeholder="7"
+                                               x-init="restoreElementValue($el)"
+                                               x-on:input="saveElementValue($el)" />
                                     </div>
                                     <button type="submit"
                                             asp-page-handler="AddSet"
                                             asp-route-workoutExerciseId="@workoutExercise.Id"
+                                             x-on:click="startTimer()"
                                             class="btn btn-primary xl:min-w-36">
                                         Add set
                                     </button>
@@ -164,19 +280,27 @@
 
                     <div>
                         <label class="input-label" asp-for="WorkoutNotes">Workout notes</label>
-                        <textarea asp-for="WorkoutNotes" class="input" rows="4" placeholder="How did this session feel? Anything worth remembering?"></textarea>
+                        <textarea asp-for="WorkoutNotes"
+                                  class="input"
+                                  rows="4"
+                                  placeholder="How did this session feel? Anything worth remembering?"
+                                  x-init="restoreElementValue($el)"
+                                  x-on:input="saveElementValue($el)"></textarea>
+                        <p class="mt-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Progress saves automatically on this device.</p>
                     </div>
 
                     <div class="flex flex-col gap-3 sm:flex-row">
                         <button type="submit"
                                 asp-page-handler="CompleteWorkout"
                                 class="btn btn-primary flex-1"
+                                x-on:click="clearWorkoutState()"
                                 onclick="return confirm('Complete this workout?')">
                             Complete workout
                         </button>
                         <button type="submit"
                                 asp-page-handler="CancelWorkout"
                                 class="btn btn-danger"
+                                x-on:click="clearWorkoutState()"
                                 onclick="return confirm('Cancel and discard this workout?')">
                             Cancel workout
                         </button>
@@ -208,11 +332,250 @@
 </div>
 
 <script>
-function workoutTracker() {
+function workoutTracker(workoutId, defaultRestTimerSeconds) {
     return {
-        startTime: null,
+        workoutId,
+        defaultRestTimerSeconds,
+        durationSeconds: defaultRestTimerSeconds,
+        remainingSeconds: defaultRestTimerSeconds,
+        endTime: null,
+        intervalId: null,
+        isRunning: false,
+        completed: false,
+        autosaveState: null,
+        get storageKey() {
+            return `fittracker:rest-timer:${this.workoutId}`;
+        },
+        get autosaveKey() {
+            return `fittracker:workout-draft:${this.workoutId}`;
+        },
+        get hasTimer() {
+            return this.remainingSeconds > 0;
+        },
+        get formattedTime() {
+            const minutes = Math.floor(this.remainingSeconds / 60);
+            const seconds = this.remainingSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        },
+        get progressPercentage() {
+            if (this.durationSeconds <= 0) {
+                return 0;
+            }
+
+            return Math.max(0, Math.min(100, (this.remainingSeconds / this.durationSeconds) * 100));
+        },
+        get progressLabel() {
+            return `${this.remainingSeconds}s left`;
+        },
+        get statusText() {
+            if (this.completed) {
+                return 'Ready for the next set';
+            }
+
+            if (this.isRunning) {
+                return 'Resting';
+            }
+
+            return 'Timer paused';
+        },
         init() {
-            this.startTime = Date.now();
+            this.autosaveState = this.loadAutosaveState();
+            const savedState = this.loadState();
+
+            if (!savedState) {
+                this.remainingSeconds = this.durationSeconds;
+                return;
+            }
+
+            this.durationSeconds = savedState.durationSeconds > 0 ? savedState.durationSeconds : this.defaultRestTimerSeconds;
+
+            if (savedState.endTime) {
+                this.endTime = savedState.endTime;
+                this.completed = false;
+                this.tick();
+
+                if (this.remainingSeconds > 0) {
+                    this.isRunning = true;
+                    this.startInterval();
+                }
+            } else {
+                this.remainingSeconds = savedState.remainingSeconds > 0 ? savedState.remainingSeconds : this.durationSeconds;
+                this.completed = !!savedState.completed;
+            }
+        },
+        setPreset(seconds) {
+            this.durationSeconds = seconds;
+            this.updateDuration();
+        },
+        updateDuration() {
+            if (!this.durationSeconds || this.durationSeconds < 15) {
+                this.durationSeconds = 15;
+            }
+
+            if (!this.isRunning) {
+                this.remainingSeconds = this.durationSeconds;
+                this.completed = false;
+                this.saveState();
+            }
+        },
+        startTimer() {
+            this.completed = false;
+            this.endTime = Date.now() + (this.durationSeconds * 1000);
+            this.isRunning = true;
+            this.tick();
+            this.startInterval();
+            this.saveState();
+        },
+        togglePause() {
+            if (this.completed) {
+                this.startTimer();
+                return;
+            }
+
+            if (this.isRunning) {
+                this.tick();
+                this.stopInterval();
+                this.endTime = null;
+                this.isRunning = false;
+                this.saveState();
+                return;
+            }
+
+            if (this.remainingSeconds <= 0) {
+                this.remainingSeconds = this.durationSeconds;
+            }
+
+            this.endTime = Date.now() + (this.remainingSeconds * 1000);
+            this.isRunning = true;
+            this.startInterval();
+            this.saveState();
+        },
+        resetTimer() {
+            this.stopInterval();
+            this.isRunning = false;
+            this.completed = false;
+            this.endTime = null;
+            this.remainingSeconds = this.durationSeconds;
+            this.saveState();
+        },
+        startInterval() {
+            this.stopInterval();
+            this.intervalId = window.setInterval(() => this.tick(), 1000);
+        },
+        stopInterval() {
+            if (this.intervalId) {
+                window.clearInterval(this.intervalId);
+                this.intervalId = null;
+            }
+        },
+        tick() {
+            if (!this.endTime) {
+                return;
+            }
+
+            const secondsLeft = Math.max(0, Math.ceil((this.endTime - Date.now()) / 1000));
+            this.remainingSeconds = secondsLeft;
+
+            if (secondsLeft === 0) {
+                this.finishTimer();
+            }
+        },
+        finishTimer() {
+            this.stopInterval();
+            this.isRunning = false;
+            this.completed = true;
+            this.endTime = null;
+            this.remainingSeconds = 0;
+
+            if ('vibrate' in navigator) {
+                navigator.vibrate([120, 80, 120]);
+            }
+
+            this.saveState();
+        },
+        loadState() {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(raw);
+            } catch {
+                localStorage.removeItem(this.storageKey);
+                return null;
+            }
+        },
+        saveState() {
+            localStorage.setItem(this.storageKey, JSON.stringify({
+                durationSeconds: this.durationSeconds,
+                remainingSeconds: this.remainingSeconds,
+                endTime: this.endTime,
+                completed: this.completed
+            }));
+        },
+        loadAutosaveState() {
+            const raw = localStorage.getItem(this.autosaveKey);
+            if (!raw) {
+                return { selectedExerciseId: '', workoutNotes: '', fields: {} };
+            }
+
+            try {
+                const parsed = JSON.parse(raw);
+                return {
+                    selectedExerciseId: parsed.selectedExerciseId ?? '',
+                    workoutNotes: parsed.workoutNotes ?? '',
+                    fields: parsed.fields ?? {}
+                };
+            } catch {
+                localStorage.removeItem(this.autosaveKey);
+                return { selectedExerciseId: '', workoutNotes: '', fields: {} };
+            }
+        },
+        persistAutosaveState() {
+            localStorage.setItem(this.autosaveKey, JSON.stringify(this.autosaveState));
+        },
+        restoreElementValue(element) {
+            if (!this.autosaveState) {
+                this.autosaveState = this.loadAutosaveState();
+            }
+
+            let value = '';
+
+            if (element.name === 'SelectedExerciseId') {
+                value = this.autosaveState.selectedExerciseId;
+            } else if (element.name === 'WorkoutNotes') {
+                value = this.autosaveState.workoutNotes;
+            } else {
+                value = this.autosaveState.fields[element.name] ?? '';
+            }
+
+            if (value !== '' && element.value === '') {
+                element.value = value;
+            }
+        },
+        saveElementValue(element) {
+            if (!this.autosaveState) {
+                this.autosaveState = this.loadAutosaveState();
+            }
+
+            const value = element.value ?? '';
+
+            if (element.name === 'SelectedExerciseId') {
+                this.autosaveState.selectedExerciseId = value;
+            } else if (element.name === 'WorkoutNotes') {
+                this.autosaveState.workoutNotes = value;
+            } else if (value === '') {
+                delete this.autosaveState.fields[element.name];
+            } else {
+                this.autosaveState.fields[element.name] = value;
+            }
+
+            this.persistAutosaveState();
+        },
+        clearWorkoutState() {
+            localStorage.removeItem(this.storageKey);
+            localStorage.removeItem(this.autosaveKey);
         }
     }
 }

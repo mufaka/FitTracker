@@ -113,18 +113,18 @@ This document tracks the implementation progress of the FitTracker application. 
   - [x] Quick log interface for adding sets
   - [x] Display current exercise
   - [x] Add set with reps and weight
-  - [ ] Built-in rest timer between sets
+  - [x] Built-in rest timer between sets
   - [x] Notes field (optional)
   - [x] "Complete Workout" button
 - [x] Implement HTMX for dynamic set additions (no page refresh)
-- [ ] Create rest timer functionality with Alpine.js
-  - [ ] Configurable timer duration
-  - [ ] Visual countdown
-  - [ ] Sound/vibration notification (optional)
-- [ ] Auto-save progress (prevent data loss)
-- [ ] Progressive overload suggestions
-  - [ ] Show last workout data for the exercise
-  - [ ] Suggest weight/rep increase
+- [x] Create rest timer functionality with Alpine.js
+  - [x] Configurable timer duration
+  - [x] Visual countdown
+  - [x] Sound/vibration notification (optional)
+- [x] Auto-save progress (prevent data loss)
+- [x] Progressive overload suggestions
+  - [x] Show last workout data for the exercise
+  - [x] Suggest weight/rep increase
 - [x] Style with large tap targets for mobile
 - [x] Make fully responsive
 
@@ -133,14 +133,14 @@ This document tracks the implementation progress of the FitTracker application. 
 - [x] Create Workout History page (`/Workouts/History`)
   - [x] List all completed workouts
   - [x] Show date, duration, exercises
-  - [ ] Pagination (10-20 per page)
-  - [ ] Filter by date range
-  - [ ] Search functionality
+  - [x] Pagination (10-20 per page)
+  - [x] Filter by date range
+  - [x] Search functionality
 - [x] Create Workout Details page (`/Workouts/Details/{id}`)
   - [x] Show all exercises and sets
   - [x] Display workout notes
   - [x] Option to delete workout
-  - [ ] Option to "Repeat Workout" (start new with same exercises)
+  - [x] Option to "Repeat Workout" (start new with same exercises)
 - [x] Style with Tailwind CSS
 - [x] Make responsive
 

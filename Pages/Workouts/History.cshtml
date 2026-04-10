@@ -12,12 +12,62 @@
                 <h1 class="page-title">See how your training is stacking up.</h1>
                 <p class="page-description">Review every logged session, revisit notes, and drill into the details behind your recent performance.</p>
             </div>
-            <div class="metric-card min-w-56">
-                <p class="metric-label">Total workouts logged</p>
-                <p class="metric-value text-primary-600 dark:text-primary-300">@Model.TotalWorkouts</p>
-                <p class="metric-meta">Completed sessions</p>
+            <div class="grid min-w-56 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <div class="metric-card">
+                    <p class="metric-label">Total workouts logged</p>
+                    <p class="metric-value text-primary-600 dark:text-primary-300">@Model.TotalWorkouts</p>
+                    <p class="metric-meta">Completed sessions</p>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">Results shown</p>
+                    <p class="metric-value">@Model.FilteredWorkouts</p>
+                    <p class="metric-meta">Matching workouts</p>
+                </div>
             </div>
         </div>
+    </section>
+
+    <section class="surface-card">
+        <form method="get" class="space-y-6">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+                <div>
+                    <label class="input-label" for="searchTerm">Search</label>
+                    <input id="searchTerm"
+                           name="searchTerm"
+                           type="text"
+                           value="@Model.SearchTerm"
+                           placeholder="Search notes or exercise names"
+                           class="input" />
+                </div>
+                <div>
+                    <label class="input-label" for="fromDate">From</label>
+                    <input id="fromDate"
+                           name="fromDate"
+                           type="date"
+                           value="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           class="input" />
+                </div>
+                <div>
+                    <label class="input-label" for="toDate">To</label>
+                    <input id="toDate"
+                           name="toDate"
+                           type="date"
+                           value="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           class="input" />
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="submit" class="btn btn-primary">Apply filters</button>
+                @if (Model.HasActiveFilters)
+                {
+                    <a asp-page="/Workouts/History" class="btn btn-secondary">Clear filters</a>
+                }
+
+                <span class="chip">Page @Model.PageNumber of @Model.TotalPages</span>
+                <span class="chip">@Model.FilteredWorkouts result@(Model.FilteredWorkouts == 1 ? string.Empty : "s")</span>
+            </div>
+        </form>
     </section>
 
     @if (Model.Workouts.Any())
@@ -28,14 +78,52 @@
                 <partial name="~/Pages/Shared/Components/_WorkoutCard.cshtml" model="workout" />
             }
         </section>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/70" aria-label="Workout history pagination">
+                <p class="text-sm text-slate-500 dark:text-slate-400">Showing page @Model.PageNumber of @Model.TotalPages</p>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a asp-page="/Workouts/History"
+                           asp-route-pageNumber="@(Model.PageNumber - 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           class="btn btn-secondary">Previous</a>
+                    }
+
+                    @if (Model.HasNextPage)
+                    {
+                        <a asp-page="/Workouts/History"
+                           asp-route-pageNumber="@(Model.PageNumber + 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           class="btn btn-secondary">Next</a>
+                    }
+                </div>
+            </nav>
+        }
     }
     else
     {
         <div class="empty-state">
             <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-            <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts yet</h3>
-            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Start logging sessions and your full training timeline will appear here.</p>
-            <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start first workout</a>
+            @if (Model.HasActiveFilters)
+            {
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts match those filters</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Try widening the date range or using a broader search term.</p>
+                <a asp-page="/Workouts/History" class="btn btn-secondary mt-5">Clear filters</a>
+            }
+            else
+            {
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Start logging sessions and your full training timeline will appear here.</p>
+                <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start first workout</a>
+            }
         </div>
     }
 </div>

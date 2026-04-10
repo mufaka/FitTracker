@@ -71,4 +71,40 @@ public class DetailsModel : PageModel
 
         return RedirectToPage("/Workouts/History");
     }
+
+    public async Task<IActionResult> OnPostRepeatAsync(int id)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId))
+            return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var sourceWorkout = await _context.Workouts
+            .Include(w => w.WorkoutExercises)
+            .FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
+
+        if (sourceWorkout == null)
+            return NotFound();
+
+        var repeatedWorkout = new Workout
+        {
+            UserId = userId,
+            Date = DateTime.UtcNow,
+            IsCompleted = false
+        };
+
+        foreach (var exercise in sourceWorkout.WorkoutExercises.OrderBy(we => we.Order))
+        {
+            repeatedWorkout.WorkoutExercises.Add(new WorkoutExercise
+            {
+                ExerciseId = exercise.ExerciseId,
+                Order = exercise.Order,
+                Notes = exercise.Notes
+            });
+        }
+
+        _context.Workouts.Add(repeatedWorkout);
+        await _context.SaveChangesAsync();
+
+        return RedirectToPage("/Workouts/Start", new { id = repeatedWorkout.Id });
+    }
 }

@@ -1,20 +1,21 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using FitTracker.Data;
 using FitTracker.Models;
+using FitTracker.Services;
 
 namespace FitTracker.Pages.Exercises;
 
 public class DetailsModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IExerciseService _exerciseService;
+    private readonly IPersonalRecordService _personalRecordService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public DetailsModel(IExerciseService exerciseService, IPersonalRecordService personalRecordService, UserManager<ApplicationUser> userManager)
     {
-        _context = context;
+        _exerciseService = exerciseService;
+        _personalRecordService = personalRecordService;
         _userManager = userManager;
     }
 
@@ -22,10 +23,11 @@ public class DetailsModel : PageModel
     public int UsageCount { get; set; }
     public DateTime? LastPerformed { get; set; }
     public Set? BestSet { get; set; }
+    public List<PersonalRecord> PersonalRecords { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        Exercise = await _context.Exercises.FindAsync(id);
+        Exercise = await _exerciseService.GetExerciseAsync(id);
 
         if (Exercise == null)
         {
@@ -38,29 +40,11 @@ public class DetailsModel : PageModel
             var userId = _userManager.GetUserId(User);
             if (!string.IsNullOrEmpty(userId))
             {
-                var workoutExercises = await _context.WorkoutExercises
-                    .Include(we => we.Workout)
-                    .Include(we => we.Sets)
-                    .Where(we => we.ExerciseId == id && we.Workout.UserId == userId)
-                    .ToListAsync();
-
-                UsageCount = workoutExercises.Count;
-
-                if (workoutExercises.Any())
-                {
-                    LastPerformed = workoutExercises
-                        .Max(we => we.Workout.Date);
-
-                    // Find best set (highest weight, or most reps if no weight)
-                    var allSets = workoutExercises.SelectMany(we => we.Sets).ToList();
-                    if (allSets.Any())
-                    {
-                        BestSet = allSets
-                            .OrderByDescending(s => s.Weight ?? 0)
-                            .ThenByDescending(s => s.Reps ?? 0)
-                            .FirstOrDefault();
-                    }
-                }
+                var history = await _exerciseService.GetExerciseHistoryForUserAsync(id, userId);
+                UsageCount = history.UsageCount;
+                LastPerformed = history.LastPerformed;
+                BestSet = history.BestSet;
+                PersonalRecords = await _personalRecordService.GetRecentRecordsForExerciseAsync(id, userId);
             }
         }
 

@@ -30,17 +30,19 @@
     <Folder Include="Controllers\" />
   </ItemGroup>
 
-  <Target Name="NpmInstall"
-          BeforeTargets="Build;Publish"
-          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json') and !Exists('$(MSBuildProjectDirectory)\node_modules')">
+  <ItemGroup>
+    <Compile Remove="FitTracker.Tests\**\*.cs" />
+    <Content Remove="FitTracker.Tests\**\*" />
+    <EmbeddedResource Remove="FitTracker.Tests\**\*" />
+    <None Remove="FitTracker.Tests\**\*" />
+  </ItemGroup>
+
+  <Target Name="NpmInstall" BeforeTargets="Build;Publish" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json') and !Exists('$(MSBuildProjectDirectory)\node_modules')">
     <Message Importance="high" Text="Installing npm packages for Tailwind CSS..." />
     <Exec Command="&quot;$(NpmCommand)&quot; install" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
-  <Target Name="BuildTailwindCss"
-          BeforeTargets="Build;Publish"
-          DependsOnTargets="NpmInstall"
-          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json')">
+  <Target Name="BuildTailwindCss" BeforeTargets="Build;Publish" DependsOnTargets="NpmInstall" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json')">
     <Message Importance="high" Text="Building Tailwind CSS..." />
     <Exec Command="&quot;$(NpmCommand)&quot; run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>

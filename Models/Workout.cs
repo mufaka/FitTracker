@@ -23,4 +23,5 @@ public class Workout
     public bool IsCompleted { get; set; } = false;
     
     public virtual ICollection<WorkoutExercise> WorkoutExercises { get; set; } = new List<WorkoutExercise>();
+    public virtual ICollection<PersonalRecord> PersonalRecords { get; set; } = new List<PersonalRecord>();
 }

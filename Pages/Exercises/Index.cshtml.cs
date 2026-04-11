@@ -1,17 +1,16 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using FitTracker.Data;
 using FitTracker.Models;
+using FitTracker.Services;
 
 namespace FitTracker.Pages.Exercises;
 
 public class IndexModel : PageModel
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IExerciseService _exerciseService;
 
-    public IndexModel(ApplicationDbContext context)
+    public IndexModel(IExerciseService exerciseService)
     {
-        _context = context;
+        _exerciseService = exerciseService;
     }
 
     public List<Exercise> Exercises { get; set; } = new();
@@ -26,30 +25,7 @@ public class IndexModel : PageModel
         CategoryFilter = category;
         EquipmentFilter = equipment;
 
-        var query = _context.Exercises.AsQueryable();
-
-        // Apply filters
-        if (!string.IsNullOrEmpty(searchTerm))
-        {
-            query = query.Where(e => e.Name.Contains(searchTerm) || 
-                                    e.MuscleGroups.Contains(searchTerm) ||
-                                    e.Description != null && e.Description.Contains(searchTerm));
-        }
-
-        if (!string.IsNullOrEmpty(category))
-        {
-            query = query.Where(e => e.Category == category);
-        }
-
-        if (!string.IsNullOrEmpty(equipment))
-        {
-            query = query.Where(e => e.Equipment.Contains(equipment));
-        }
-
-        TotalExercises = await _context.Exercises.CountAsync();
-        Exercises = await query
-            .OrderBy(e => e.Category)
-            .ThenBy(e => e.Name)
-            .ToListAsync();
+        TotalExercises = await _exerciseService.GetTotalExercisesAsync();
+        Exercises = await _exerciseService.SearchExercisesAsync(searchTerm, category, equipment);
     }
 }

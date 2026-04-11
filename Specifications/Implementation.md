@@ -74,9 +74,9 @@ This document tracks the implementation progress of the FitTracker application. 
 - [x] Create Login page (`/Account/Login`)
 - [x] Create Logout functionality
 - [x] Create Account/Manage page (basic profile settings)
-- [ ] Implement email confirmation (optional for MVP)
-- [ ] Add password reset functionality
-- [ ] Create user profile setup wizard (first-time users)
+- [x] Implement email confirmation (optional for MVP)
+- [x] Add password reset functionality
+- [x] Create user profile setup wizard (first-time users)
 
 ### Core Pages - Dashboard
 
@@ -158,30 +158,30 @@ This document tracks the implementation progress of the FitTracker application. 
 
 ### Services & Business Logic
 
-- [ ] Create `WorkoutService`
-  - [ ] Start workout
-  - [ ] Add exercise to workout
-  - [ ] Log set
-  - [ ] Complete workout
-  - [ ] Calculate workout volume
-  - [ ] Get progressive overload suggestions
-- [ ] Create `ExerciseService`
-  - [ ] Search exercises
-  - [ ] Filter exercises
-  - [ ] Get exercise history for user
+- [x] Create `WorkoutService`
+  - [x] Start workout
+  - [x] Add exercise to workout
+  - [x] Log set
+  - [x] Complete workout
+  - [x] Calculate workout volume
+  - [x] Get progressive overload suggestions
+- [x] Create `ExerciseService`
+  - [x] Search exercises
+  - [x] Filter exercises
+  - [x] Get exercise history for user
 - [x] Create `AnalyticsService`
   - [x] Calculate daily summary
   - [x] Calculate total volume
   - [x] Estimate calories burned
-- [ ] Add unit tests for services (optional for MVP)
+- [x] Add unit tests for services (optional for MVP)
 
 ### UI Components
 
 - [x] Create reusable components (Razor partials)
   - [x] Exercise card
   - [x] Workout card
-  - [ ] Set input component
-  - [ ] Timer component
+  - [x] Set input component
+  - [x] Timer component
   - [x] Statistics card
   - [x] Loading spinner
   - [x] Empty state components
@@ -189,6 +189,8 @@ This document tracks the implementation progress of the FitTracker application. 
 - [x] Ensure dark mode compatibility
 
 ### Testing & Bug Fixes
+
+Reference checklist: `Specifications/ManualTestChecklist.md`
 
 - [ ] Test user registration flow
 - [ ] Test login/logout flow
@@ -205,9 +207,9 @@ This document tracks the implementation progress of the FitTracker application. 
 ### Documentation
 
 - [x] Write README.md with setup instructions
-- [ ] Document database schema
-- [ ] Add code comments where necessary
-- [ ] Create user guide (optional)
+- [x] Document database schema
+- [x] Add code comments where necessary
+- [x] Create user guide (optional)
 
 ---
 
@@ -215,22 +217,22 @@ This document tracks the implementation progress of the FitTracker application. 
 
 ### Workout Templates
 
-- [ ] Create `WorkoutTemplate` model
-  - [ ] Id, UserId, Name, Description, IsActive
-- [ ] Create `WorkoutTemplateExercise` model
-  - [ ] Id, TemplateId, ExerciseId, Order, DefaultSets, DefaultReps, Notes
-- [ ] Add database migration
-- [ ] Create Templates page (`/Templates/Index`)
-  - [ ] List all user templates
-  - [ ] Create new template
-  - [ ] Edit template
-  - [ ] Delete template
-- [ ] Create Template Builder page (`/Templates/Create`)
-  - [ ] Add exercises to template
-  - [ ] Set default sets/reps
-  - [ ] Reorder exercises
-- [ ] Add "Start from Template" option to dashboard
-- [ ] Style with Tailwind CSS
+- [x] Create `WorkoutTemplate` model
+  - [x] Id, UserId, Name, Description, IsActive
+- [x] Create `WorkoutTemplateExercise` model
+  - [x] Id, TemplateId, ExerciseId, Order, DefaultSets, DefaultReps, Notes
+- [x] Add database migration
+- [x] Create Templates page (`/Templates/Index`)
+  - [x] List all user templates
+  - [x] Create new template
+  - [x] Edit template
+  - [x] Delete template
+- [x] Create Template Builder page (`/Templates/Create`)
+  - [x] Add exercises to template
+  - [x] Set default sets/reps
+  - [x] Reorder exercises
+- [x] Add "Start from Template" option to dashboard
+- [x] Style with Tailwind CSS
 
 ### Calendar View
 
@@ -246,40 +248,40 @@ This document tracks the implementation progress of the FitTracker application. 
 
 ### Personal Records Tracking
 
-- [ ] Create `PersonalRecord` model
-  - [ ] Id, UserId, ExerciseId, Weight, Reps, Date, OneRepMax
-- [ ] Add database migration
-- [ ] Implement PR detection logic
-  - [ ] Automatically detect PRs when workout is completed
-  - [ ] Create PR entry
-- [ ] Create PR celebration UI (toast/modal)
-- [ ] Create PRs page (`/PRs`)
-  - [ ] List all PRs by exercise
-  - [ ] Filter by date range
-  - [ ] Show progression over time
-- [ ] Display PRs on exercise details page
-- [ ] Style with Tailwind CSS
+- [x] Create `PersonalRecord` model
+  - [x] Id, UserId, ExerciseId, Weight, Reps, Date, OneRepMax
+- [x] Add database migration
+- [x] Implement PR detection logic
+  - [x] Automatically detect PRs when workout is completed
+  - [x] Create PR entry
+- [x] Create PR celebration UI (toast/modal)
+- [x] Create PRs page (`/PRs`)
+  - [x] List all PRs by exercise
+  - [x] Filter by date range
+  - [x] Show progression over time
+- [x] Display PRs on exercise details page
+- [x] Style with Tailwind CSS
 
 ### Weekly & Monthly Summaries
 
-- [ ] Extend `AnalyticsService` for weekly/monthly calculations
-  - [ ] Total workouts in period
-  - [ ] Workout frequency
-  - [ ] Volume comparison (week-over-week, month-over-month)
-  - [ ] Muscle group distribution
-  - [ ] Rest days
-- [ ] Create Weekly Summary page (`/Analytics/Weekly`)
-  - [ ] Display week picker
-  - [ ] Show all weekly stats
-  - [ ] Week-over-week charts
-- [ ] Create Monthly Summary page (`/Analytics/Monthly`)
-  - [ ] Display month picker
-  - [ ] Show all monthly stats
-  - [ ] Month-over-month charts
-  - [ ] Adherence percentage
-- [ ] Add charts using chart library (Chart.js or similar)
-- [ ] Style with Tailwind CSS
-- [ ] Make responsive
+- [x] Extend `AnalyticsService` for weekly/monthly calculations
+  - [x] Total workouts in period
+  - [x] Workout frequency
+  - [x] Volume comparison (week-over-week, month-over-month)
+  - [x] Muscle group distribution
+  - [x] Rest days
+- [x] Create Weekly Summary page (`/Analytics/Weekly`)
+  - [x] Display week picker
+  - [x] Show all weekly stats
+  - [x] Week-over-week charts
+- [x] Create Monthly Summary page (`/Analytics/Monthly`)
+  - [x] Display month picker
+  - [x] Show all monthly stats
+  - [x] Month-over-month charts
+  - [x] Adherence percentage
+- [x] Add charts using chart library (Chart.js or similar)
+- [x] Style with Tailwind CSS
+- [x] Make responsive
 
 ### Progress Charts
 

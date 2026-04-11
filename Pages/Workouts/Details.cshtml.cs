@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using FitTracker.Data;
 using FitTracker.Models;
+using FitTracker.Services;
 
 namespace FitTracker.Pages.Workouts;
 
@@ -12,11 +13,13 @@ namespace FitTracker.Pages.Workouts;
 public class DetailsModel : PageModel
 {
     private readonly ApplicationDbContext _context;
+    private readonly IPersonalRecordService _personalRecordService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public DetailsModel(ApplicationDbContext context, IPersonalRecordService personalRecordService, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _personalRecordService = personalRecordService;
         _userManager = userManager;
     }
 
@@ -25,6 +28,7 @@ public class DetailsModel : PageModel
     public int TotalReps { get; set; }
     public decimal TotalVolume { get; set; }
     public decimal AverageRPE { get; set; }
+    public List<PersonalRecord> WorkoutPersonalRecords { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -50,6 +54,7 @@ public class DetailsModel : PageModel
         
         var setsWithRPE = allSets.Where(s => s.RPE.HasValue).ToList();
         AverageRPE = setsWithRPE.Any() ? (decimal)setsWithRPE.Average(s => s.RPE!.Value) : 0;
+        WorkoutPersonalRecords = await _personalRecordService.GetRecordsForWorkoutAsync(id, userId);
 
         return Page();
     }

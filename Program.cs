@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using FitTracker.Data;
 using FitTracker.Models;
@@ -27,6 +28,11 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
 
 // Register application services
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IWorkoutService, WorkoutService>();
+builder.Services.AddScoped<IExerciseService, ExerciseService>();
+builder.Services.AddScoped<ITemplateService, TemplateService>();
+builder.Services.AddScoped<IPersonalRecordService, PersonalRecordService>();
+builder.Services.AddTransient<IEmailSender, LoggingEmailSender>();
 
 builder.Services.AddRazorPages();
 

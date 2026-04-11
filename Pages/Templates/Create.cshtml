@@ -1,0 +1,152 @@
+@page "{id:int?}"
+@model FitTracker.Pages.Templates.CreateModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? "Edit Template" : "Create Template";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Template builder</p>
+                <h1 class="page-title">@(Model.IsEditMode ? "Refine your template" : "Create a workout template")</h1>
+                <p class="page-description">Add exercises, tune default targets, and reorder the session so you can launch it quickly from the dashboard later.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Templates/Index" class="btn btn-secondary">Back to templates</a>
+                <a asp-page="/Workouts/Start" class="btn btn-secondary">Start empty workout</a>
+            </div>
+        </div>
+    </section>
+
+    <form method="post" class="space-y-8">
+        <input type="hidden" asp-for="Template.Id" />
+
+        @for (var i = 0; i < Model.Template.Exercises.Count; i++)
+        {
+            <input type="hidden" asp-for="Template.Exercises[i].ExerciseId" />
+            <input type="hidden" asp-for="Template.Exercises[i].ExerciseName" />
+            <input type="hidden" asp-for="Template.Exercises[i].Equipment" />
+            <input type="hidden" asp-for="Template.Exercises[i].MuscleGroups" />
+        }
+
+        @if (!ViewContext.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="rounded-[1.5rem] border border-red-200/80 bg-red-50/80 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200"></div>
+        }
+
+        <section class="surface-card space-y-6">
+            <div>
+                <p class="page-eyebrow">Template details</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Name and status</h2>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label class="input-label" asp-for="Template.Name">Template name</label>
+                    <input asp-for="Template.Name" class="input" placeholder="Upper body push" />
+                    <span asp-validation-for="Template.Name" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+                <label class="flex items-center gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/70 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200">
+                    <input asp-for="Template.IsActive" class="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500" />
+                    <span>Template is active and ready to start</span>
+                </label>
+            </div>
+
+            <div>
+                <label class="input-label" asp-for="Template.Description">Description</label>
+                <textarea asp-for="Template.Description" rows="3" class="input" placeholder="What is this session for?"></textarea>
+            </div>
+        </section>
+
+        <section class="surface-card space-y-6">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Exercises</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Build the lineup</h2>
+                </div>
+                <span class="chip">@Model.Template.Exercises.Count exercise@(Model.Template.Exercises.Count == 1 ? string.Empty : "s")</span>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div>
+                    <label class="input-label" asp-for="SelectedExerciseId">Exercise</label>
+                    <select asp-for="SelectedExerciseId" class="input">
+                        <option value="">Select an exercise...</option>
+                        @foreach (var category in Model.ExercisesByCategory)
+                        {
+                            <optgroup label="@category.Key">
+                                @foreach (var exercise in category.Value)
+                                {
+                                    <option value="@exercise.Id">@exercise.Name (@exercise.Equipment)</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
+                <button type="submit" asp-page-handler="AddExercise" class="btn btn-primary md:min-w-40">Add exercise</button>
+            </div>
+
+            @if (Model.Template.Exercises.Any())
+            {
+                <div class="space-y-4">
+                    @for (var i = 0; i < Model.Template.Exercises.Count; i++)
+                    {
+                        <section class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="chip chip-primary">Exercise @(i + 1)</span>
+                                        <span class="chip">@Model.Template.Exercises[i].Equipment</span>
+                                    </div>
+                                    <h3 class="mt-4 text-xl font-semibold text-slate-950 dark:text-white">@Model.Template.Exercises[i].ExerciseName</h3>
+                                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.Template.Exercises[i].MuscleGroups</p>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button type="submit" asp-page-handler="MoveUp" asp-route-index="@i" class="btn btn-secondary" disabled="@(i == 0 ? "disabled" : null)">Move up</button>
+                                    <button type="submit" asp-page-handler="MoveDown" asp-route-index="@i" class="btn btn-secondary" disabled="@(i == Model.Template.Exercises.Count - 1 ? "disabled" : null)">Move down</button>
+                                    <button type="submit" asp-page-handler="RemoveExercise" asp-route-index="@i" class="btn btn-danger">Remove</button>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 grid gap-4 md:grid-cols-3">
+                                <div>
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultSets">Default sets</label>
+                                    <input asp-for="Template.Exercises[i].DefaultSets" type="number" min="1" class="input" />
+                                    <span asp-validation-for="Template.Exercises[i].DefaultSets" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div>
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultReps">Default reps</label>
+                                    <input asp-for="Template.Exercises[i].DefaultReps" type="number" min="1" class="input" />
+                                    <span asp-validation-for="Template.Exercises[i].DefaultReps" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="input-label" asp-for="Template.Exercises[i].Notes">Notes</label>
+                                    <textarea asp-for="Template.Exercises[i].Notes" rows="2" class="input" placeholder="Optional cue or reminder"></textarea>
+                                </div>
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Add your first exercise</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Choose movements from the library, then set default targets and reorder them into a clean session flow.</p>
+                </div>
+            }
+        </section>
+
+        <section class="surface-card">
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <a asp-page="/Templates/Index" class="btn btn-secondary">Cancel</a>
+                <button type="submit" asp-page-handler="Save" class="btn btn-primary">Save template</button>
+            </div>
+        </section>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

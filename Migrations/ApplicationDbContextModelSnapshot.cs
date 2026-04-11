@@ -139,6 +139,47 @@ namespace FitTracker.Migrations
                     b.ToTable("Exercises");
                 });
 
+            modelBuilder.Entity("FitTracker.Models.PersonalRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("OneRepMax")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Reps")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("WorkoutId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("WorkoutId");
+
+                    b.HasIndex("UserId", "ExerciseId", "Date");
+
+                    b.ToTable("PersonalRecords");
+                });
+
             modelBuilder.Entity("FitTracker.Models.Set", b =>
                 {
                     b.Property<int>("Id")
@@ -236,6 +277,72 @@ namespace FitTracker.Migrations
                     b.HasIndex("WorkoutId");
 
                     b.ToTable("WorkoutExercises");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WorkoutTemplates");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutTemplateExercise", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DefaultReps")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DefaultSets")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("WorkoutTemplateExercises");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -370,6 +477,33 @@ namespace FitTracker.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("FitTracker.Models.PersonalRecord", b =>
+                {
+                    b.HasOne("FitTracker.Models.Exercise", "Exercise")
+                        .WithMany("PersonalRecords")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FitTracker.Models.ApplicationUser", "User")
+                        .WithMany("PersonalRecords")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitTracker.Models.Workout", "Workout")
+                        .WithMany("PersonalRecords")
+                        .HasForeignKey("WorkoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Workout");
+                });
+
             modelBuilder.Entity("FitTracker.Models.Set", b =>
                 {
                     b.HasOne("FitTracker.Models.WorkoutExercise", "WorkoutExercise")
@@ -409,6 +543,36 @@ namespace FitTracker.Migrations
                     b.Navigation("Exercise");
 
                     b.Navigation("Workout");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>
+                {
+                    b.HasOne("FitTracker.Models.ApplicationUser", "User")
+                        .WithMany("WorkoutTemplates")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutTemplateExercise", b =>
+                {
+                    b.HasOne("FitTracker.Models.Exercise", "Exercise")
+                        .WithMany("WorkoutTemplateExercises")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FitTracker.Models.WorkoutTemplate", "Template")
+                        .WithMany("Exercises")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -464,22 +628,37 @@ namespace FitTracker.Migrations
 
             modelBuilder.Entity("FitTracker.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("PersonalRecords");
+
+                    b.Navigation("WorkoutTemplates");
+
                     b.Navigation("Workouts");
                 });
 
             modelBuilder.Entity("FitTracker.Models.Exercise", b =>
                 {
+                    b.Navigation("PersonalRecords");
+
                     b.Navigation("WorkoutExercises");
+
+                    b.Navigation("WorkoutTemplateExercises");
                 });
 
             modelBuilder.Entity("FitTracker.Models.Workout", b =>
                 {
+                    b.Navigation("PersonalRecords");
+
                     b.Navigation("WorkoutExercises");
                 });
 
             modelBuilder.Entity("FitTracker.Models.WorkoutExercise", b =>
                 {
                     b.Navigation("Sets");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>
+                {
+                    b.Navigation("Exercises");
                 });
 #pragma warning restore 612, 618
         }

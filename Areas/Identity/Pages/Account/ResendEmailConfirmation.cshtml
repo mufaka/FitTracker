@@ -1,0 +1,42 @@
+@page
+@model ResendEmailConfirmationModel
+@{
+    ViewData["Title"] = "Resend email confirmation";
+}
+
+<div class="auth-shell">
+    <section class="auth-card">
+        <p class="page-eyebrow">Email verification</p>
+        <h1 class="mt-3 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">Resend confirmation email</h1>
+        <p class="mt-4 text-base leading-7 text-slate-600 dark:text-slate-400">Enter your account email and a fresh confirmation link will be generated.</p>
+
+        <form method="post" class="mt-8 space-y-5">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+            <div>
+                <label asp-for="Input.Email" class="input-label"></label>
+                <input asp-for="Input.Email" class="input" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <span asp-validation-for="Input.Email" class="mt-2 block text-sm text-red-500"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Resend confirmation</button>
+        </form>
+
+        @if (Model.ConfirmationSent)
+        {
+            <div class="mt-8 rounded-[1.75rem] border border-primary-200/80 bg-primary-50/80 p-5 dark:border-primary-500/20 dark:bg-primary-500/10">
+                <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">If an unconfirmed account exists for this email, a fresh confirmation message has been generated.</p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.DevelopmentConfirmationUrl))
+                {
+                    <a href="@Model.DevelopmentConfirmationUrl" class="btn btn-primary mt-5">Open confirmation link</a>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

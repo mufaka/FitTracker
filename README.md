@@ -75,8 +75,10 @@ The application will be available at:
 
 ```
 FitTracker/
+├── FitTracker.slnx       # Solution file for app and tests
 ├── Data/                  # Database context and migrations
 │   └── ApplicationDbContext.cs
+├── FitTracker.Tests/      # Service tests and test infrastructure
 ├── Models/                # Entity models
 │   ├── ApplicationUser.cs
 │   ├── Exercise.cs
@@ -94,7 +96,11 @@ FitTracker/
 │   └── js/
 ├── Specifications/        # Project documentation
 │   ├── Idea.md           # Project concept and features
-│   └── Implementation.md # Implementation checklist
+│   ├── Implementation.md # Implementation checklist
+│   ├── Progress.md       # Session progress summary
+│   ├── DatabaseSchema.md # Current database schema reference
+│   ├── ManualTestChecklist.md # Manual MVP validation checklist
+│   └── UserGuide.md      # End-user guide for the MVP
 ├── appsettings.json      # Configuration
 ├── Program.cs            # Application entry point
 ├── tailwind.config.js    # Tailwind CSS configuration
@@ -111,16 +117,19 @@ FitTracker/
 - **WorkoutExercise** - Exercises within a specific workout
 - **Set** - Individual sets (reps, weight, duration, RPE)
 
+Detailed schema documentation is available in `Specifications/DatabaseSchema.md`.
+
 ## Features
 
 ### Phase 1: MVP (Current)
 - ✅ User authentication and registration
+- ✅ Password reset, email confirmation, and profile setup
 - ✅ Database setup with EF Core
 - ✅ Dark mode support
 - ✅ Responsive design foundation
-- ⏳ Exercise library
-- ⏳ Workout logging
-- ⏳ Daily summaries
+- ✅ Exercise library
+- ✅ Workout logging
+- ✅ Daily summaries
 
 ### Phase 2: Enhanced Tracking (Planned)
 - Workout templates
@@ -168,6 +177,14 @@ The CSS source is in `wwwroot/css/site.css` and outputs to `wwwroot/css/output.c
 Run the watcher during development:
 ```bash
 npm run watch:css
+```
+
+### Running Tests
+
+Run the service test project with:
+
+```bash
+dotnet test .\FitTracker.Tests\FitTracker.Tests.csproj -p:SkipTailwindBuild=true
 ```
 
 ### Code Standards
@@ -237,3 +254,9 @@ This project is for personal use and learning purposes.
 ## Roadmap
 
 See `Specifications/Implementation.md` for detailed implementation progress and upcoming features.
+
+See `Specifications/Progress.md` for the current MVP delivery status.
+
+See `Specifications/ManualTestChecklist.md` for the current MVP manual validation checklist.
+
+See `Specifications/UserGuide.md` for an end-user walkthrough of the current MVP.

@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using FitTracker.Models;
+using FitTracker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -142,6 +143,12 @@ namespace FitTracker.Areas.Identity.Pages.Account
                     else
                     {
                         await _signInManager.SignInAsync(user, isPersistent: false);
+
+                        if (ProfileSetupHelper.RequiresSetup(user))
+                        {
+                            return RedirectToPage("./Setup", new { returnUrl = returnUrl });
+                        }
+
                         return LocalRedirect(returnUrl);
                     }
                 }

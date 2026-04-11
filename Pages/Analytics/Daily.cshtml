@@ -13,6 +13,14 @@
                 <p class="page-description">Track today's workload, scan session details, and move quickly between training days.</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                <span class="btn btn-primary">Daily</span>
+                <a asp-page="/Analytics/Weekly" class="btn btn-secondary">Weekly</a>
+                <a asp-page="/Analytics/Monthly" class="btn btn-secondary">Monthly</a>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <a href="?date=@Model.SelectedDate.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-secondary">← Previous</a>
                 <input type="date"
                        value="@Model.SelectedDate.ToString("yyyy-MM-dd")"

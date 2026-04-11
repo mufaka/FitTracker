@@ -31,6 +31,8 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public string Username { get; set; }
+        public string Email { get; set; }
+        public bool IsEmailConfirmed { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -59,18 +61,37 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
             [Phone]
             [Display(Name = "Phone number")]
             public string PhoneNumber { get; set; }
+
+            [Required]
+            [Display(Name = "Preferred units")]
+            public string PreferredUnits { get; set; } = "lbs";
+
+            [Range(15, 600)]
+            [Display(Name = "Default rest timer (seconds)")]
+            public int DefaultRestTimer { get; set; } = 90;
+
+            [Required]
+            [StringLength(500)]
+            [Display(Name = "Primary goals")]
+            public string Goals { get; set; }
         }
 
         private async Task LoadAsync(ApplicationUser user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
+            var email = await _userManager.GetEmailAsync(user);
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
 
             Username = userName;
+            Email = email;
+            IsEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
 
             Input = new InputModel
             {
-                PhoneNumber = phoneNumber
+                PhoneNumber = phoneNumber,
+                PreferredUnits = string.IsNullOrWhiteSpace(user.PreferredUnits) ? "lbs" : user.PreferredUnits,
+                DefaultRestTimer = user.DefaultRestTimer > 0 ? user.DefaultRestTimer : 90,
+                Goals = user.Goals
             };
         }
 
@@ -109,6 +130,17 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
                     StatusMessage = "Unexpected error when trying to set phone number.";
                     return RedirectToPage();
                 }
+            }
+
+            user.PreferredUnits = Input.PreferredUnits;
+            user.DefaultRestTimer = Input.DefaultRestTimer;
+            user.Goals = Input.Goals?.Trim();
+
+            var updateUserResult = await _userManager.UpdateAsync(user);
+            if (!updateUserResult.Succeeded)
+            {
+                StatusMessage = "Unexpected error when trying to update profile details.";
+                return RedirectToPage();
             }
 
             await _signInManager.RefreshSignInAsync(user);

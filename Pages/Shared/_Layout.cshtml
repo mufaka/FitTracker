@@ -68,6 +68,14 @@
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                             <span>Exercises</span>
                         </a>
+                        <a asp-page="/Templates/Index" class="@NavClasses("/Templates")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            <span>Templates</span>
+                        </a>
+                        <a asp-page="/PRs/Index" class="@NavClasses("/PRs")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7H7v6m0 0l4-4 3 3 5-5M5 19h14"></path></svg>
+                            <span>PRs</span>
+                        </a>
                         <a asp-page="/Analytics/Daily" class="@NavClasses("/Analytics")">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             <span>Analytics</span>
@@ -139,6 +147,8 @@
                             <a asp-page="/Index" class="@NavClasses("/Index")" @@click="sidebarOpen = false">Dashboard</a>
                             <a asp-page="/Workouts/Start" class="@NavClasses("/Workouts")" @@click="sidebarOpen = false">Workouts</a>
                             <a asp-page="/Exercises/Index" class="@NavClasses("/Exercises")" @@click="sidebarOpen = false">Exercises</a>
+                            <a asp-page="/Templates/Index" class="@NavClasses("/Templates")" @@click="sidebarOpen = false">Templates</a>
+                            <a asp-page="/PRs/Index" class="@NavClasses("/PRs")" @@click="sidebarOpen = false">PRs</a>
                             <a asp-page="/Analytics/Daily" class="@NavClasses("/Analytics")" @@click="sidebarOpen = false">Analytics</a>
                             <a asp-area="Identity" asp-page="/Account/Manage/Index" class="@NavClasses("/Identity/Account/Manage")" @@click="sidebarOpen = false">Profile</a>
                         </nav>

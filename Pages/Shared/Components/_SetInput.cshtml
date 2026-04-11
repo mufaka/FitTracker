@@ -1,0 +1,45 @@
+@model SetInputModel
+
+<div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+    <h3 class="text-lg font-semibold text-slate-950 dark:text-white">Add set #@Model.NextSetNumber</h3>
+    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+        <input type="hidden" name="WorkoutExerciseId" value="@Model.WorkoutExerciseId" />
+        <div>
+            <label class="input-label">Weight (@Model.UserUnits)</label>
+            <input type="number"
+                   name="Weight_@Model.WorkoutExerciseId"
+                   step="0.01"
+                   class="input"
+                   placeholder="0"
+                   x-init="restoreElementValue($el)"
+                   x-on:input="saveElementValue($el)" />
+        </div>
+        <div>
+            <label class="input-label">Reps</label>
+            <input type="number"
+                   name="Reps_@Model.WorkoutExerciseId"
+                   class="input"
+                   placeholder="0"
+                   x-init="restoreElementValue($el)"
+                   x-on:input="saveElementValue($el)" />
+        </div>
+        <div>
+            <label class="input-label">RPE (1-10)</label>
+            <input type="number"
+                   name="RPE_@Model.WorkoutExerciseId"
+                   min="1"
+                   max="10"
+                   class="input"
+                   placeholder="7"
+                   x-init="restoreElementValue($el)"
+                   x-on:input="saveElementValue($el)" />
+        </div>
+        <button type="submit"
+                asp-page-handler="AddSet"
+                asp-route-workoutExerciseId="@Model.WorkoutExerciseId"
+                x-on:click="startTimer()"
+                class="btn btn-primary xl:min-w-36">
+            Add set
+        </button>
+    </div>
+</div>

@@ -35,9 +35,46 @@
                 </div>
 
                 <div>
+                    <label class="input-label">Email</label>
+                    <input value="@Model.Email" class="input" disabled />
+                    <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                        @if (Model.IsEmailConfirmed)
+                        {
+                            <span class="chip chip-success">Confirmed</span>
+                        }
+                        else
+                        {
+                            <span class="chip">Not confirmed</span>
+                            <a asp-area="Identity" asp-page="/Account/ResendEmailConfirmation" asp-route-email="@Model.Email" class="font-medium text-primary-600 dark:text-primary-300">Resend confirmation email</a>
+                        }
+                    </div>
+                </div>
+
+                <div>
                     <label asp-for="Input.PhoneNumber" class="input-label"></label>
                     <input asp-for="Input.PhoneNumber" class="input" placeholder="Please enter your phone number." />
                     <span asp-validation-for="Input.PhoneNumber" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Input.PreferredUnits" class="input-label"></label>
+                    <select asp-for="Input.PreferredUnits" class="input">
+                        <option value="lbs">Pounds (lbs)</option>
+                        <option value="kg">Kilograms (kg)</option>
+                    </select>
+                    <span asp-validation-for="Input.PreferredUnits" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Input.DefaultRestTimer" class="input-label"></label>
+                    <input asp-for="Input.DefaultRestTimer" class="input" min="15" step="15" />
+                    <span asp-validation-for="Input.DefaultRestTimer" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Input.Goals" class="input-label"></label>
+                    <textarea asp-for="Input.Goals" class="input" rows="4" placeholder="Examples: build strength, improve consistency, train three times per week"></textarea>
+                    <span asp-validation-for="Input.Goals" class="mt-2 block text-sm text-red-500"></span>
                 </div>
 
                 <button id="update-profile-button" type="submit" class="btn btn-primary">Save changes</button>

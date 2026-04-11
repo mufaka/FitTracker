@@ -10,4 +10,6 @@ public class ApplicationUser : IdentityUser
     public bool DarkMode { get; set; } = false;
     
     public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
+    public virtual ICollection<WorkoutTemplate> WorkoutTemplates { get; set; } = new List<WorkoutTemplate>();
+    public virtual ICollection<PersonalRecord> PersonalRecords { get; set; } = new List<PersonalRecord>();
 }

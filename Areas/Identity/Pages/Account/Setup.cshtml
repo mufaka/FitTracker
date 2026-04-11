@@ -1,0 +1,63 @@
+@page
+@model SetupModel
+@{
+    ViewData["Title"] = "Profile setup";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Welcome to FitTracker</p>
+                <h1 class="page-title">Set up your profile</h1>
+                <p class="page-description">Choose your preferred units, set a default rest timer, and add a goal so your account is ready for training.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[0.7fr_1.3fr]">
+        <div class="surface-card">
+            <p class="page-eyebrow">Setup checklist</p>
+            <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">A quick first step</h2>
+            <ul class="mt-4 space-y-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                <li>• Pick the units you use most often</li>
+                <li>• Set a rest timer that matches your training style</li>
+                <li>• Add a goal to personalize your account</li>
+            </ul>
+        </div>
+
+        <div class="surface-card">
+            <form method="post" class="space-y-5">
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+                <div>
+                    <label asp-for="Input.PreferredUnits" class="input-label"></label>
+                    <select asp-for="Input.PreferredUnits" class="input">
+                        <option value="lbs">Pounds (lbs)</option>
+                        <option value="kg">Kilograms (kg)</option>
+                    </select>
+                    <span asp-validation-for="Input.PreferredUnits" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Input.DefaultRestTimer" class="input-label"></label>
+                    <input asp-for="Input.DefaultRestTimer" class="input" min="15" step="15" />
+                    <span asp-validation-for="Input.DefaultRestTimer" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Input.Goals" class="input-label"></label>
+                    <textarea asp-for="Input.Goals" class="input" rows="4" placeholder="Examples: build strength, improve consistency, train three times per week"></textarea>
+                    <span asp-validation-for="Input.Goals" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save and continue</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

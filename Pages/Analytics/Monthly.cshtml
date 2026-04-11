@@ -1,0 +1,175 @@
+@page
+@using System.Text.Json
+@model FitTracker.Pages.Analytics.MonthlyModel
+@{
+    ViewData["Title"] = "Monthly Summary";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Monthly analytics</p>
+                <h1 class="page-title">Review the whole month.</h1>
+                <p class="page-description">Measure adherence, compare volume month over month, and surface long-range trends from your completed training blocks.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a asp-page="/Analytics/Daily" class="btn btn-secondary">Daily</a>
+                <a asp-page="/Analytics/Weekly" class="btn btn-secondary">Weekly</a>
+                <span class="btn btn-primary">Monthly</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-end">
+            <a href="?month=@Model.Summary.PeriodStart.AddMonths(-1).ToString("yyyy-MM")" class="btn btn-secondary">← Previous month</a>
+            <div>
+                <label class="input-label" for="monthPicker">Month</label>
+                <input id="monthPicker"
+                       type="month"
+                       value="@Model.Summary.PeriodStart.ToString("yyyy-MM")"
+                       onchange="window.location.href='?month=' + this.value"
+                       class="input" />
+            </div>
+            <a href="?month=@Model.Summary.PeriodStart.AddMonths(1).ToString("yyyy-MM")" class="btn btn-secondary">Next month →</a>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div class="metric-card">
+            <p class="metric-label">Total workouts</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.TotalWorkouts</p>
+            <p class="metric-meta">Completed this month</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Adherence</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.AdherencePercentage.ToString("0.0")%</p>
+            <p class="metric-meta">Training days vs calendar days</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Workout frequency</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.WorkoutFrequency.ToString("0.00")</p>
+            <p class="metric-meta">Workouts per day</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Rest days</p>
+            <p class="metric-value text-slate-950 dark:text-white">@Model.Summary.RestDays</p>
+            <p class="metric-meta">Days without a workout</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Volume change</p>
+            <p class="metric-value @(Model.Summary.VolumeChangePercentage >= 0 ? "text-amber-600 dark:text-amber-300" : "text-red-500 dark:text-red-300")">@Model.Summary.VolumeChangePercentage.ToString("+0.0;-0.0;0")%</p>
+            <p class="metric-meta">Vs previous month</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Charts</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Month-over-month trend</h2>
+                </div>
+                <span class="chip">@Model.Summary.Label</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="monthlyVolumeChart" height="180"></canvas>
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6">
+                <p class="page-eyebrow">Monthly totals</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Performance summary</h2>
+            </div>
+            <div class="space-y-4">
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total volume</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalVolume.ToString("N0")</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Previous month volume</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.PreviousPeriodVolume.ToString("N0")</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total duration</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalDuration min</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Calories</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">~@Model.Summary.CaloriesBurned</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Muscle group distribution</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Monthly emphasis</h2>
+            </div>
+            <span class="chip">@Model.Summary.ActiveDays active day@(Model.Summary.ActiveDays == 1 ? string.Empty : "s")</span>
+        </div>
+
+        @if (Model.Summary.MuscleGroupDistribution.Any())
+        {
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach (var item in Model.Summary.MuscleGroupDistribution)
+                {
+                    <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">@item.MuscleGroup</p>
+                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@item.Volume.ToString("N0")</p>
+                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@item.ExerciseCount logged exercise entry@(item.ExerciseCount == 1 ? string.Empty : "ies")</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No monthly data yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">As completed workouts stack up through the month, you’ll see adherence, volume trends, and muscle group distribution here.</p>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const monthlyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
+        const monthlyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));
+
+        const monthlyContext = document.getElementById('monthlyVolumeChart');
+        if (monthlyContext) {
+            new Chart(monthlyContext, {
+                type: 'line',
+                data: {
+                    labels: monthlyLabels,
+                    datasets: [
+                        {
+                            label: 'Daily volume',
+                            data: monthlyVolumes,
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.18)',
+                            fill: true,
+                            tension: 0.35
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { labels: { color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#334155' } }
+                    }
+                }
+            });
+        }
+    </script>
+}

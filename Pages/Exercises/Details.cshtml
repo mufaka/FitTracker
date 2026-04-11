@@ -101,6 +101,34 @@
                             </p>
                         </div>
                     </div>
+
+                    @if (Model.PersonalRecords.Any())
+                    {
+                        <div class="mt-6 rounded-[1.75rem] border border-amber-200/80 bg-amber-50/80 p-5 dark:border-amber-500/20 dark:bg-amber-500/10">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                    <p class="page-eyebrow">Personal records</p>
+                                    <h3 class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">Your strongest recent efforts</h3>
+                                </div>
+                                <a asp-page="/PRs/Index" class="btn btn-secondary">View all PRs</a>
+                            </div>
+
+                            <div class="mt-4 space-y-3">
+                                @foreach (var record in Model.PersonalRecords.Take(5))
+                                {
+                                    <div class="rounded-[1.25rem] border border-white/70 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-slate-950/60">
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <p class="font-semibold text-slate-950 dark:text-white">@record.Weight.ToString("0.##") lbs × @record.Reps</p>
+                                                <p class="text-sm text-slate-500 dark:text-slate-400">@record.Date.ToString("MMM dd, yyyy")</p>
+                                            </div>
+                                            <span class="chip chip-success">1RM @record.OneRepMax.ToString("0.##")</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 }
                 else
                 {

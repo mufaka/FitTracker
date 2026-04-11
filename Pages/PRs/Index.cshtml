@@ -1,0 +1,100 @@
+@page
+@model FitTracker.Pages.PRs.IndexModel
+@{
+    ViewData["Title"] = "Personal Records";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Personal records</p>
+                <h1 class="page-title">Track your strongest lifts.</h1>
+                <p class="page-description">See the sessions where you set a new best, filter by date range, and review progression exercise by exercise.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+                <a asp-page="/Exercises/Index" class="btn btn-secondary">Exercise library</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <form method="get" class="grid gap-4 md:grid-cols-3 md:items-end">
+            <div>
+                <label class="input-label" asp-for="StartDate">Start date</label>
+                <input asp-for="StartDate" type="date" class="input" />
+            </div>
+            <div>
+                <label class="input-label" asp-for="EndDate">End date</label>
+                <input asp-for="EndDate" type="date" class="input" />
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="btn btn-primary">Apply filters</button>
+                <a asp-page="/PRs/Index" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </section>
+
+    @if (Model.RecordsByExercise.Any())
+    {
+        <div class="space-y-6">
+            @foreach (var exerciseGroup in Model.RecordsByExercise)
+            {
+                var records = exerciseGroup.OrderByDescending(pr => pr.Date).ThenByDescending(pr => pr.OneRepMax).ToList();
+                var bestRecord = records.OrderByDescending(pr => pr.OneRepMax).ThenByDescending(pr => pr.Weight).ThenByDescending(pr => pr.Reps).First();
+                <section class="surface-card">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <p class="page-eyebrow">Progression</p>
+                            <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@bestRecord.Exercise.Name</h2>
+                            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@bestRecord.Exercise.MuscleGroups · @bestRecord.Exercise.Equipment</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="chip chip-success">Best 1RM @bestRecord.OneRepMax.ToString("0.##")</span>
+                            <span class="chip">@records.Count PR@(records.Count == 1 ? string.Empty : "s")</span>
+                            <a asp-page="/Exercises/Details" asp-route-id="@bestRecord.ExerciseId" class="btn btn-secondary">Exercise details</a>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 table-shell">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Weight</th>
+                                    <th>Reps</th>
+                                    <th>Estimated 1RM</th>
+                                    <th>Workout</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in records)
+                                {
+                                    <tr>
+                                        <td class="font-semibold">@record.Date.ToString("MMM dd, yyyy")</td>
+                                        <td>@record.Weight.ToString("0.##") lbs</td>
+                                        <td>@record.Reps</td>
+                                        <td>@record.OneRepMax.ToString("0.##")</td>
+                                        <td>
+                                            <a asp-page="/Workouts/Details" asp-route-id="@record.WorkoutId" class="text-sm font-medium text-primary-600 transition hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-200">View workout</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 3C7.026 3 2.73 6.11 1 10.5c1.73 4.39 6.026 7.5 11 7.5s9.27-3.11 11-7.5a11.957 11.957 0 00-1.382-2.516"></path></svg>
+            <h2 class="text-xl font-semibold text-slate-950 dark:text-white">No PRs yet</h2>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Complete workouts and push past previous bests to start building your personal record history.</p>
+            <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start training</a>
+        </div>
+    }
+</div>

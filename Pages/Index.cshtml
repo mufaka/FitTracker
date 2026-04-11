@@ -129,10 +129,59 @@
             </section>
 
             <section class="surface-card">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">Templates</p>
+                        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Start from a saved plan</h2>
+                    </div>
+                    <a asp-page="/Templates/Index" class="btn btn-secondary">Manage</a>
+                </div>
+
+                @if (Model.ActiveTemplates.Any())
+                {
+                    <div class="mt-6 space-y-3">
+                        @foreach (var template in Model.ActiveTemplates)
+                        {
+                            <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@template.Name</h3>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@template.Exercises.Count exercise@(template.Exercises.Count == 1 ? string.Empty : "s")</p>
+                                        @if (!string.IsNullOrWhiteSpace(template.Description))
+                                        {
+                                            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@template.Description</p>
+                                        }
+                                    </div>
+
+                                    @if (Model.TodaysWorkout == null || Model.TodaysWorkout.IsCompleted)
+                                    {
+                                        <a asp-page="/Workouts/Start" asp-route-templateId="@template.Id" class="btn btn-primary">Start template</a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-page="/Workouts/Start" asp-route-id="@Model.TodaysWorkout.Id" class="btn btn-secondary">Continue workout</a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state mt-6">
+                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No active templates yet</h3>
+                        <p class="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">Save your most-used training splits so you can launch them directly from the dashboard.</p>
+                        <a asp-page="/Templates/Create" class="btn btn-primary mt-5">Create template</a>
+                    </div>
+                }
+            </section>
+
+            <section class="surface-card">
                 <p class="page-eyebrow">Quick actions</p>
                 <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Move fast</h2>
                 <div class="mt-6 grid gap-3">
                     <a asp-page="/Workouts/Start" class="btn btn-primary justify-between">Log a workout <span>→</span></a>
+                    <a asp-page="/Templates/Index" class="btn btn-secondary justify-between">Manage templates <span>→</span></a>
                     <a asp-page="/Exercises/Index" class="btn btn-secondary justify-between">Browse exercises <span>→</span></a>
                     <a asp-page="/Analytics/Daily" class="btn btn-secondary justify-between">View daily analytics <span>→</span></a>
                 </div>

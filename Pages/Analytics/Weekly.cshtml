@@ -1,0 +1,180 @@
+@page
+@using System.Text.Json
+@model FitTracker.Pages.Analytics.WeeklyModel
+@{
+    ViewData["Title"] = "Weekly Summary";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Weekly analytics</p>
+                <h1 class="page-title">See the full week.</h1>
+                <p class="page-description">Compare this week against the last one, monitor training frequency, and review which muscle groups carried the most work.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a asp-page="/Analytics/Daily" class="btn btn-secondary">Daily</a>
+                <span class="btn btn-primary">Weekly</span>
+                <a asp-page="/Analytics/Monthly" class="btn btn-secondary">Monthly</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-end">
+            <a href="?week=@Model.Summary.PeriodStart.AddDays(-7).ToString("yyyy-MM-dd")" class="btn btn-secondary">← Previous week</a>
+            <div>
+                <label class="input-label" for="weekPicker">Week of</label>
+                <input id="weekPicker"
+                       type="date"
+                       value="@Model.Summary.PeriodStart.ToString("yyyy-MM-dd")"
+                       onchange="window.location.href='?week=' + this.value"
+                       class="input" />
+            </div>
+            <a href="?week=@Model.Summary.PeriodStart.AddDays(7).ToString("yyyy-MM-dd")" class="btn btn-secondary">Next week →</a>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="metric-card">
+            <p class="metric-label">Total workouts</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.TotalWorkouts</p>
+            <p class="metric-meta">Completed this week</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Workout frequency</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.WorkoutFrequency.ToString("0.00")</p>
+            <p class="metric-meta">Workouts per day</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Rest days</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.RestDays</p>
+            <p class="metric-meta">Days without a workout</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Volume change</p>
+            <p class="metric-value @(Model.Summary.VolumeChangePercentage >= 0 ? "text-amber-600 dark:text-amber-300" : "text-red-500 dark:text-red-300")">@Model.Summary.VolumeChangePercentage.ToString("+0.0;-0.0;0")%</p>
+            <p class="metric-meta">Vs previous week</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Charts</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Week-over-week workload</h2>
+                </div>
+                <span class="chip">@Model.Summary.Label</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="weeklyVolumeChart" height="160"></canvas>
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6">
+                <p class="page-eyebrow">Summary</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Weekly totals</h2>
+            </div>
+            <div class="space-y-4">
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total volume</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalVolume.ToString("N0")</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Previous week volume</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.PreviousPeriodVolume.ToString("N0")</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Duration</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalDuration min</p>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Calories</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">~@Model.Summary.CaloriesBurned</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Muscle group distribution</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Where the work went</h2>
+            </div>
+            <span class="chip">@Model.Summary.ActiveDays active day@(Model.Summary.ActiveDays == 1 ? string.Empty : "s")</span>
+        </div>
+
+        @if (Model.Summary.MuscleGroupDistribution.Any())
+        {
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach (var item in Model.Summary.MuscleGroupDistribution)
+                {
+                    <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">@item.MuscleGroup</p>
+                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@item.Volume.ToString("N0")</p>
+                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@item.ExerciseCount logged exercise entry@(item.ExerciseCount == 1 ? string.Empty : "ies")</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No weekly data yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Complete workouts during this week to unlock volume trends and muscle group distribution.</p>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const weeklyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
+        const weeklyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));
+        const weeklyWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Workouts)));
+
+        const weeklyContext = document.getElementById('weeklyVolumeChart');
+        if (weeklyContext) {
+            new Chart(weeklyContext, {
+                type: 'bar',
+                data: {
+                    labels: weeklyLabels,
+                    datasets: [
+                        {
+                            label: 'Volume',
+                            data: weeklyVolumes,
+                            backgroundColor: 'rgba(59, 130, 246, 0.65)',
+                            borderRadius: 12,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Workouts',
+                            data: weeklyWorkouts,
+                            type: 'line',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                            tension: 0.35,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true },
+                        y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#334155' } }
+                    }
+                }
+            });
+        }
+    </script>
+}

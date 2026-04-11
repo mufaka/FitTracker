@@ -24,7 +24,7 @@
                            value="@Model.SearchTerm"
                            placeholder="Search exercises, muscle groups, or equipment"
                            class="input"
-                           hx-get="/Exercises/Index"
+                           hx-get="@Url.Page("/Exercises/Index", "List")"
                            hx-trigger="keyup changed delay:350ms"
                            hx-target="#exercise-list"
                            hx-include="[name='category'], [name='equipment']" />
@@ -61,23 +61,5 @@
         </form>
     </section>
 
-    <section id="exercise-list">
-        @if (Model.Exercises.Any())
-        {
-            <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                @foreach (var exercise in Model.Exercises)
-                {
-                    <partial name="~/Pages/Shared/Components/_ExerciseCard.cshtml" model="exercise" />
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-state">
-                <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No exercises found</h3>
-                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Try a broader search or clear one of the filters to discover more options.</p>
-            </div>
-        }
-    </section>
+    <partial name="~/Pages/Exercises/_ExerciseList.cshtml" model="Model.Exercises" />
 </div>

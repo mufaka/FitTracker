@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using FitTracker.Models;
 using FitTracker.Services;
@@ -20,6 +21,17 @@ public class IndexModel : PageModel
     public string? EquipmentFilter { get; set; }
 
     public async Task OnGetAsync(string? searchTerm, string? category, string? equipment)
+    {
+        await LoadExercisesAsync(searchTerm, category, equipment);
+    }
+
+    public async Task<PartialViewResult> OnGetListAsync(string? searchTerm, string? category, string? equipment)
+    {
+        await LoadExercisesAsync(searchTerm, category, equipment);
+        return Partial("~/Pages/Exercises/_ExerciseList.cshtml", Exercises);
+    }
+
+    private async Task LoadExercisesAsync(string? searchTerm, string? category, string? equipment)
     {
         SearchTerm = searchTerm;
         CategoryFilter = category;

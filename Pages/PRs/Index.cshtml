@@ -53,6 +53,7 @@
                         <div class="flex flex-wrap gap-2">
                             <span class="chip chip-success">Best 1RM @bestRecord.OneRepMax.ToString("0.##")</span>
                             <span class="chip">@records.Count PR@(records.Count == 1 ? string.Empty : "s")</span>
+                            <a asp-page="/Progress/Exercise" asp-route-id="@bestRecord.ExerciseId" class="btn btn-secondary">View progress</a>
                             <a asp-page="/Exercises/Details" asp-route-id="@bestRecord.ExerciseId" class="btn btn-secondary">Exercise details</a>
                         </div>
                     </div>

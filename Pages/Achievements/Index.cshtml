@@ -1,0 +1,126 @@
+@page "/Achievements"
+@model FitTracker.Pages.Achievements.IndexModel
+@{
+    ViewData["Title"] = "Achievements";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Achievements</p>
+                <h1 class="page-title">Turn consistency into milestones.</h1>
+                <p class="page-description">Track unlocked milestones, see what is close next, and use each achievement as a reminder that steady training compounds.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Index" class="btn btn-secondary">Dashboard</a>
+                <a asp-page="/PRs/Index" class="btn btn-secondary">PRs</a>
+                <a asp-page="/Analytics/Index" class="btn btn-secondary">Analytics</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-3">
+        <div class="metric-card">
+            <p class="metric-label">Unlocked</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.UnlockedCount</p>
+            <p class="metric-meta">Milestones earned so far</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Remaining</p>
+            <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.LockedCount</p>
+            <p class="metric-meta">Goals still in progress</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Completion</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@(Model.Summary.TotalCount == 0 ? 0 : (int)Math.Round((decimal)Model.Summary.UnlockedCount / Model.Summary.TotalCount * 100))%</p>
+            <p class="metric-meta">Achievement collection progress</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Unlocked</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Earned milestones</h2>
+                </div>
+                <span class="chip chip-success">@Model.Summary.UnlockedCount unlocked</span>
+            </div>
+
+            @if (Model.Summary.UnlockedAchievements.Any())
+            {
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach (var achievement in Model.Summary.UnlockedAchievements)
+                    {
+                        <div class="rounded-[1.5rem] border border-emerald-200/80 bg-emerald-50/80 p-5 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/80 text-3xl shadow-sm dark:bg-slate-950/70">@achievement.Icon</div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@achievement.Name</h3>
+                                        <span class="chip chip-success">Unlocked</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@achievement.Description</p>
+                                    @if (achievement.UnlockedDate.HasValue)
+                                    {
+                                        <p class="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">Unlocked @achievement.UnlockedDate.Value.ToString("MMM dd, yyyy")</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No achievements unlocked yet</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Complete workouts, log sets, and chase PRs to start earning milestones.</p>
+                </div>
+            }
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">In progress</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Closest next unlocks</h2>
+                </div>
+                <span class="chip">Progress bars</span>
+            </div>
+
+            @if (Model.Summary.LockedAchievements.Any())
+            {
+                <div class="space-y-4">
+                    @foreach (var achievement in Model.Summary.LockedAchievements)
+                    {
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-3xl dark:bg-slate-800">@achievement.Icon</div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@achievement.Name</h3>
+                                        <span class="chip">@achievement.ProgressPercentage%</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@achievement.Description</p>
+                                    <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                        <div class="h-full rounded-full bg-primary-500 transition-all" style="width: @achievement.ProgressPercentage%"></div>
+                                    </div>
+                                    <p class="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">@achievement.ProgressLabel</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">All achievements unlocked</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">You have cleared every current milestone. Time to add more goals.</p>
+                </div>
+            }
+        </section>
+    </div>
+</div>

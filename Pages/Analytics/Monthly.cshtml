@@ -14,10 +14,29 @@
                 <p class="page-description">Measure adherence, compare volume month over month, and surface long-range trends from your completed training blocks.</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                <a asp-page="/Analytics/Index" class="btn btn-secondary">Overview</a>
                 <a asp-page="/Analytics/Daily" class="btn btn-secondary">Daily</a>
                 <a asp-page="/Analytics/Weekly" class="btn btn-secondary">Weekly</a>
                 <span class="btn btn-primary">Monthly</span>
             </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="metric-card">
+            <p class="metric-label">Latest body weight</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@(Model.Summary.LatestBodyWeight?.ToString("0.##") ?? "—")</p>
+            <p class="metric-meta">Latest measurement this period</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Weight change</p>
+            <p class="metric-value @(Model.Summary.BodyWeightChange >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500 dark:text-red-300")">@(Model.Summary.BodyWeightChange?.ToString("+0.##;-0.##;0") ?? "—")</p>
+            <p class="metric-meta">Change during the selected month</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Latest body fat</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@(Model.Summary.LatestBodyFatPercentage.HasValue ? $"{Model.Summary.LatestBodyFatPercentage:0.##}%" : "—")</p>
+            <p class="metric-meta">Most recent composition update</p>
         </div>
     </section>
 
@@ -134,6 +153,31 @@
             </div>
         }
     </section>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Body measurements</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Weight trend</h2>
+            </div>
+            <a asp-page="/Measurements" class="btn btn-secondary">Manage measurements</a>
+        </div>
+
+        @if (Model.Summary.BodyWeightData.Any())
+        {
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="monthlyBodyWeightChart" height="160"></canvas>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No measurements for this month</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Log body measurements to compare weight changes alongside your monthly training analytics.</p>
+                <a asp-page="/Measurements" class="btn btn-primary mt-5">Add measurement</a>
+            </div>
+        }
+    </section>
 </div>
 
 @section Scripts {
@@ -141,6 +185,8 @@
     <script>
         const monthlyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
         const monthlyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));
+        const monthlyBodyWeightLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Label)));
+        const monthlyBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Value)));
 
         const monthlyContext = document.getElementById('monthlyVolumeChart');
         if (monthlyContext) {
@@ -164,6 +210,36 @@
                     maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { labels: { color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#334155' } }
+                    }
+                }
+            });
+        }
+
+        const monthlyBodyWeightContext = document.getElementById('monthlyBodyWeightChart');
+        if (monthlyBodyWeightContext) {
+            new Chart(monthlyBodyWeightContext, {
+                type: 'line',
+                data: {
+                    labels: monthlyBodyWeightLabels,
+                    datasets: [
+                        {
+                            label: 'Body weight',
+                            data: monthlyBodyWeights,
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                            fill: true,
+                            tension: 0.35
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false }
                     },
                     plugins: {
                         legend: { labels: { color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#334155' } }

@@ -3,6 +3,7 @@ using System;
 using FitTracker.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,46 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitTracker.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260419165702_AddBodyMeasurements")]
+    partial class AddBodyMeasurements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.6");
-
-            modelBuilder.Entity("FitTracker.Models.Achievement", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Criteria")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Icon")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Achievements");
-                });
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
 
             modelBuilder.Entity("FitTracker.Models.ApplicationUser", b =>
                 {
@@ -262,40 +231,6 @@ namespace FitTracker.Migrations
                     b.ToTable("PersonalRecords");
                 });
 
-            modelBuilder.Entity("FitTracker.Models.ProgressPhoto", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhotoPath")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "Date");
-
-                    b.ToTable("ProgressPhotos");
-                });
-
             modelBuilder.Entity("FitTracker.Models.Set", b =>
                 {
                     b.Property<int>("Id")
@@ -332,34 +267,6 @@ namespace FitTracker.Migrations
                     b.HasIndex("WorkoutExerciseId");
 
                     b.ToTable("Sets");
-                });
-
-            modelBuilder.Entity("FitTracker.Models.UserAchievement", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AchievementId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UnlockedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AchievementId");
-
-                    b.HasIndex("UserId", "AchievementId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "UnlockedDate");
-
-                    b.ToTable("UserAchievements");
                 });
 
             modelBuilder.Entity("FitTracker.Models.Workout", b =>
@@ -659,17 +566,6 @@ namespace FitTracker.Migrations
                     b.Navigation("Workout");
                 });
 
-            modelBuilder.Entity("FitTracker.Models.ProgressPhoto", b =>
-                {
-                    b.HasOne("FitTracker.Models.ApplicationUser", "User")
-                        .WithMany("ProgressPhotos")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("FitTracker.Models.Set", b =>
                 {
                     b.HasOne("FitTracker.Models.WorkoutExercise", "WorkoutExercise")
@@ -679,25 +575,6 @@ namespace FitTracker.Migrations
                         .IsRequired();
 
                     b.Navigation("WorkoutExercise");
-                });
-
-            modelBuilder.Entity("FitTracker.Models.UserAchievement", b =>
-                {
-                    b.HasOne("FitTracker.Models.Achievement", "Achievement")
-                        .WithMany("UserAchievements")
-                        .HasForeignKey("AchievementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FitTracker.Models.ApplicationUser", "User")
-                        .WithMany("UserAchievements")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Achievement");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FitTracker.Models.Workout", b =>
@@ -811,20 +688,11 @@ namespace FitTracker.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("FitTracker.Models.Achievement", b =>
-                {
-                    b.Navigation("UserAchievements");
-                });
-
             modelBuilder.Entity("FitTracker.Models.ApplicationUser", b =>
                 {
                     b.Navigation("BodyMeasurements");
 
                     b.Navigation("PersonalRecords");
-
-                    b.Navigation("ProgressPhotos");
-
-                    b.Navigation("UserAchievements");
 
                     b.Navigation("WorkoutTemplates");
 

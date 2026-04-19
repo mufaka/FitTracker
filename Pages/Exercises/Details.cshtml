@@ -28,6 +28,11 @@
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <a asp-page="/Workouts/Start" class="btn btn-primary">Add to workout</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-page="/Progress/Exercise" asp-route-id="@Model.Exercise.Id" class="btn btn-secondary">View progress</a>
+                        <a asp-page="/OneRepMax" asp-route-weight="@Model.BestSet?.Weight" asp-route-reps="@Model.BestSet?.Reps" class="btn btn-secondary">1RM calculator</a>
+                    }
                     @if (!string.IsNullOrEmpty(Model.Exercise.VideoUrl))
                     {
                         <a href="@Model.Exercise.VideoUrl" target="_blank" rel="noreferrer" class="btn btn-secondary">Watch demo</a>
@@ -67,7 +72,7 @@
 
                 @if (Model.UsageCount > 0)
                 {
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                             <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Times logged</p>
                             <p class="mt-3 text-3xl font-semibold text-primary-600 dark:text-primary-300">@Model.UsageCount</p>
@@ -100,6 +105,23 @@
                                 }
                             </p>
                         </div>
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Estimated 1RM</p>
+                            <p class="mt-3 text-xl font-semibold text-slate-950 dark:text-white">
+                                @if (Model.BestSetOneRepMax.HasValue)
+                                {
+                                    <span>@Model.BestSetOneRepMax.Average.ToString("0.##") lbs</span>
+                                }
+                                else
+                                {
+                                    <span>No estimate yet</span>
+                                }
+                            </p>
+                            @if (Model.BestSetOneRepMax.HasValue)
+                            {
+                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Epley @Model.BestSetOneRepMax.Epley.ToString("0.##") · Brzycki @Model.BestSetOneRepMax.Brzycki.ToString("0.##")</p>
+                            }
+                        </div>
                     </div>
 
                     @if (Model.PersonalRecords.Any())
@@ -122,7 +144,7 @@
                                                 <p class="font-semibold text-slate-950 dark:text-white">@record.Weight.ToString("0.##") lbs × @record.Reps</p>
                                                 <p class="text-sm text-slate-500 dark:text-slate-400">@record.Date.ToString("MMM dd, yyyy")</p>
                                             </div>
-                                            <span class="chip chip-success">1RM @record.OneRepMax.ToString("0.##")</span>
+                                            <span class="chip chip-success">Avg 1RM @record.OneRepMax.ToString("0.##")</span>
                                         </div>
                                     </div>
                                 }

@@ -46,7 +46,7 @@ public class PersonalRecordService : IPersonalRecordService
                     exerciseGroup.First().ExerciseId,
                     s.Weight ?? 0,
                     s.Reps ?? 0,
-                    CalculateOneRepMax(s.Weight ?? 0, s.Reps ?? 0)))
+                    OneRepMaxCalculator.CalculateAverage(s.Weight ?? 0, s.Reps ?? 0)))
                 .OrderByDescending(c => c.OneRepMax)
                 .ThenByDescending(c => c.Weight)
                 .ThenByDescending(c => c.Reps)
@@ -153,14 +153,5 @@ public class PersonalRecordService : IPersonalRecordService
 
         return candidate.Reps > previousBest.Reps;
     }
-
-    private static decimal CalculateOneRepMax(decimal weight, int reps)
-    {
-        if (weight <= 0 || reps <= 0)
-            return 0;
-
-        return Math.Round(weight * (1 + (reps / 30m)), 2, MidpointRounding.AwayFromZero);
-    }
-
     private sealed record PersonalRecordCandidate(int ExerciseId, decimal Weight, int Reps, decimal OneRepMax);
 }

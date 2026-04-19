@@ -12,4 +12,7 @@ public class ApplicationUser : IdentityUser
     public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
     public virtual ICollection<WorkoutTemplate> WorkoutTemplates { get; set; } = new List<WorkoutTemplate>();
     public virtual ICollection<PersonalRecord> PersonalRecords { get; set; } = new List<PersonalRecord>();
+    public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
+    public virtual ICollection<BodyMeasurement> BodyMeasurements { get; set; } = new List<BodyMeasurement>();
+    public virtual ICollection<ProgressPhoto> ProgressPhotos { get; set; } = new List<ProgressPhoto>();
 }

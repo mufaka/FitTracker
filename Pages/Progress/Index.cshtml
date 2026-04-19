@@ -1,0 +1,281 @@
+@page
+@using System.Text.Json
+@model FitTracker.Pages.Progress.IndexModel
+@{
+    ViewData["Title"] = "Overall Progress";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Progress tracking</p>
+                <h1 class="page-title">See the trend behind the work.</h1>
+                <p class="page-description">Review weekly volume, training frequency, and the last 12 weeks of completed workouts in one place.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="btn btn-primary">Overall progress</span>
+                <a asp-page="/Analytics/Daily" class="btn btn-secondary">Analytics</a>
+                <a asp-page="/Workouts/History" class="btn btn-secondary">Workout history</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="metric-card">
+            <p class="metric-label">Completed workouts</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.TotalWorkouts</p>
+            <p class="metric-meta">Across the last 12 weeks</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Active weeks</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.ActiveWeeks</p>
+            <p class="metric-meta">Weeks with at least one workout</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Total volume</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.TotalVolume.ToString("N0")</p>
+            <p class="metric-meta">Weight × reps across the range</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Average weekly volume</p>
+            <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.AverageWeeklyVolume.ToString("N0")</p>
+            <p class="metric-meta">Average across all 12 weeks</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-2">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Volume trend</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Weekly volume over time</h2>
+                </div>
+                <span class="chip">@Model.Summary.PeriodStart.ToString("MMM dd") - @Model.Summary.PeriodEnd.ToString("MMM dd")</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="overallVolumeChart" height="180"></canvas>
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Frequency trend</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Workouts per week</h2>
+                </div>
+                <span class="chip">12-week view</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="overallFrequencyChart" height="180"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Weekly breakdown</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Progress by week</h2>
+            </div>
+            <span class="chip">Most recent week on the right</span>
+        </div>
+
+        @if (Model.Summary.WeeklyData.Any(point => point.Workouts > 0))
+        {
+            <div class="table-shell">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Week of</th>
+                            <th>Workouts</th>
+                            <th>Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var point in Model.Summary.WeeklyData.OrderByDescending(point => point.PeriodStart))
+                        {
+                            <tr>
+                                <td class="font-semibold">@point.PeriodStart.ToString("MMM dd, yyyy")</td>
+                                <td>@point.Workouts</td>
+                                <td>@point.Volume.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No progress data yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Complete a few workouts and weekly progress trends will start filling in here.</p>
+            </div>
+        }
+    </section>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Body weight</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Weight trend</h2>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                @if (Model.Summary.LatestBodyWeight.HasValue)
+                {
+                    <span class="chip">Latest @Model.Summary.LatestBodyWeight.Value.ToString("0.##")</span>
+                }
+                @if (Model.Summary.BodyWeightChange.HasValue)
+                {
+                    var weightChange = Model.Summary.BodyWeightChange.Value;
+                    var weightChangeClass = weightChange <= 0
+                        ? "text-emerald-600 dark:text-emerald-300"
+                        : "text-amber-600 dark:text-amber-300";
+                    <span class="chip @weightChangeClass">
+                        @(weightChange > 0 ? "+" : string.Empty)@weightChange.ToString("0.##") over range
+                    </span>
+                }
+                <a asp-page="/Measurements" class="btn btn-secondary">Measurements</a>
+            </div>
+        </div>
+
+        @if (Model.Summary.BodyWeightData.Any())
+        {
+            <div class="space-y-6">
+                <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                    <canvas id="overallBodyWeightChart" height="180"></canvas>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="metric-card">
+                        <p class="metric-label">Weight entries</p>
+                        <p class="metric-value text-sky-600 dark:text-sky-300">@Model.Summary.BodyWeightData.Count</p>
+                        <p class="metric-meta">Recorded during this 12-week range</p>
+                    </div>
+                    <div class="metric-card">
+                        <p class="metric-label">Starting weight</p>
+                        <p class="metric-value text-slate-900 dark:text-white">@Model.Summary.BodyWeightData.First().Value.ToString("0.##")</p>
+                        <p class="metric-meta">First in-range body weight entry</p>
+                    </div>
+                    <div class="metric-card">
+                        <p class="metric-label">Latest weight</p>
+                        <p class="metric-value text-slate-900 dark:text-white">@Model.Summary.BodyWeightData.Last().Value.ToString("0.##")</p>
+                        <p class="metric-meta">Most recent recorded body weight</p>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No body weight data in this range</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Add measurements to chart body weight alongside your workout trends.</p>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const overallLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Label)));
+        const overallVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Volume)));
+        const overallWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Workouts)));
+        const overallBodyWeightLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Label)));
+        const overallBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Value)));
+
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const axisColor = isDarkMode ? '#cbd5e1' : '#475569';
+        const gridColor = isDarkMode ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.25)';
+
+        const sharedOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: { color: axisColor },
+                    grid: { color: gridColor }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: axisColor },
+                    grid: { color: gridColor }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: axisColor } }
+            }
+        };
+
+        const overallVolumeContext = document.getElementById('overallVolumeChart');
+        if (overallVolumeContext) {
+            new Chart(overallVolumeContext, {
+                type: 'line',
+                data: {
+                    labels: overallLabels,
+                    datasets: [
+                        {
+                            label: 'Weekly volume',
+                            data: overallVolumes,
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.18)',
+                            fill: true,
+                            tension: 0.35
+                        }
+                    ]
+                },
+                options: sharedOptions
+            });
+        }
+
+        const overallFrequencyContext = document.getElementById('overallFrequencyChart');
+        if (overallFrequencyContext) {
+            new Chart(overallFrequencyContext, {
+                type: 'bar',
+                data: {
+                    labels: overallLabels,
+                    datasets: [
+                        {
+                            label: 'Completed workouts',
+                            data: overallWorkouts,
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderRadius: 12
+                        }
+                    ]
+                },
+                options: sharedOptions
+            });
+        }
+
+        const overallBodyWeightContext = document.getElementById('overallBodyWeightChart');
+        if (overallBodyWeightContext) {
+            new Chart(overallBodyWeightContext, {
+                type: 'line',
+                data: {
+                    labels: overallBodyWeightLabels,
+                    datasets: [
+                        {
+                            label: 'Body weight',
+                            data: overallBodyWeights,
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                            fill: true,
+                            tension: 0.35,
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    ...sharedOptions,
+                    scales: {
+                        ...sharedOptions.scales,
+                        y: {
+                            ...sharedOptions.scales.y,
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+}

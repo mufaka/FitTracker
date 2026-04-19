@@ -9,6 +9,16 @@ namespace FitTracker.Tests.Services;
 public class AnalyticsServiceTests
 {
     [Fact]
+    public void OneRepMaxCalculator_CalculatesEpleyBrzyckiAndAverage()
+    {
+        var estimate = OneRepMaxCalculator.Calculate(225m, 5);
+
+        Assert.Equal(262.5m, estimate.Epley);
+        Assert.Equal(253.13m, estimate.Brzycki);
+        Assert.Equal(257.82m, estimate.Average);
+    }
+
+    [Fact]
     public async Task GetDailySummaryAsync_AggregatesCompletedWorkoutData()
     {
         using var factory = new TestDbContextFactory();
@@ -157,6 +167,183 @@ public class AnalyticsServiceTests
         Assert.True(summary.AdherencePercentage > 6m);
     }
 
+    [Fact]
+    public async Task GetMonthlySummaryAsync_IncludesBodyWeightTrendDataWhenMeasurementsExist()
+    {
+        using var factory = new TestDbContextFactory();
+        using var context = factory.CreateContext();
+
+        var user = CreateUser();
+        var month = new DateTime(2026, 4, 1);
+
+        context.Users.Add(user);
+        context.BodyMeasurements.AddRange(
+            new BodyMeasurement { UserId = user.Id, Date = month.AddDays(-2), Weight = 181m, BodyFatPercentage = 20m },
+            new BodyMeasurement { UserId = user.Id, Date = month.AddDays(2), Weight = 180m, BodyFatPercentage = 19.5m },
+            new BodyMeasurement { UserId = user.Id, Date = month.AddDays(20), Weight = 177.5m, BodyFatPercentage = 18.9m });
+
+        await context.SaveChangesAsync();
+
+        var service = new AnalyticsService(context);
+        var summary = await service.GetMonthlySummaryAsync(user.Id, month);
+
+        Assert.Equal(177.5m, summary.LatestBodyWeight);
+        Assert.Equal(-2.5m, summary.BodyWeightChange);
+        Assert.Equal(18.9m, summary.LatestBodyFatPercentage);
+        Assert.Equal(2, summary.BodyWeightData.Count);
+        Assert.Equal(month.AddDays(2).Date, summary.BodyWeightData.First().Date.Date);
+    }
+
+    [Fact]
+    public async Task GetOverallProgressAsync_BuildsWeeklyVolumeAndFrequencyTrend()
+    {
+        using var factory = new TestDbContextFactory();
+        using var context = factory.CreateContext();
+
+        var user = CreateUser();
+        var exercise = CreateExercise("Overhead Press", "Strength", "Barbell");
+        var currentWeekStart = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
+
+        context.Users.Add(user);
+        context.Exercises.Add(exercise);
+        context.Workouts.AddRange(
+            CreateWorkout(user.Id, exercise, currentWeekStart.AddDays(-5), 100m, 5),
+            CreateWorkout(user.Id, exercise, currentWeekStart.AddDays(2), 120m, 4));
+
+        await context.SaveChangesAsync();
+
+        var service = new AnalyticsService(context);
+        var summary = await service.GetOverallProgressAsync(user.Id);
+
+        Assert.Equal(2, summary.TotalWorkouts);
+        Assert.Equal(2, summary.ActiveWeeks);
+        Assert.Equal(980m, summary.TotalVolume);
+        Assert.Equal(12, summary.WeeklyData.Count);
+        Assert.Equal(2, summary.WeeklyData.Count(point => point.Workouts == 1));
+    }
+
+    [Fact]
+    public async Task GetOverallProgressAsync_IncludesBodyWeightTrendDataWhenMeasurementsExist()
+    {
+        using var factory = new TestDbContextFactory();
+        using var context = factory.CreateContext();
+
+        var user = CreateUser();
+        var currentWeekStart = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
+        var periodStart = currentWeekStart.AddDays(-7 * 11);
+
+        context.Users.Add(user);
+        context.BodyMeasurements.AddRange(
+            new BodyMeasurement { UserId = user.Id, Date = periodStart.AddDays(-2), Weight = 185m },
+            new BodyMeasurement { UserId = user.Id, Date = periodStart.AddDays(3), Weight = 183.5m },
+            new BodyMeasurement { UserId = user.Id, Date = currentWeekStart.AddDays(1), Weight = 181m });
+
+        await context.SaveChangesAsync();
+
+        var service = new AnalyticsService(context);
+        var summary = await service.GetOverallProgressAsync(user.Id);
+
+        Assert.Equal(181m, summary.LatestBodyWeight);
+        Assert.Equal(-2.5m, summary.BodyWeightChange);
+        Assert.Equal(2, summary.BodyWeightData.Count);
+        Assert.Equal(periodStart.AddDays(3).Date, summary.BodyWeightData.First().Date.Date);
+        Assert.Equal(currentWeekStart.AddDays(1).Date, summary.BodyWeightData.Last().Date.Date);
+    }
+
+    [Fact]
+    public async Task GetAdvancedDashboardAsync_ReturnsMuscleGroupsTrendsAndPrTimeline()
+    {
+        using var factory = new TestDbContextFactory();
+        using var context = factory.CreateContext();
+
+        var user = CreateUser();
+        var chestExercise = new Exercise { Name = "Bench Press", Category = "Strength", Equipment = "Barbell", MuscleGroups = "Chest" };
+        var legsExercise = new Exercise { Name = "Squat", Category = "Strength", Equipment = "Barbell", MuscleGroups = "Legs" };
+        var today = DateTime.UtcNow.Date;
+
+        context.Users.Add(user);
+        context.Exercises.AddRange(chestExercise, legsExercise);
+        context.Workouts.AddRange(
+            CreateWorkout(user.Id, chestExercise, today.AddDays(-10), 100m, 8),
+            CreateWorkout(user.Id, chestExercise, today.AddDays(-3), 105m, 6),
+            CreateWorkout(user.Id, legsExercise, today.AddDays(-2), 185m, 5));
+
+        await context.SaveChangesAsync();
+
+        var latestWorkoutId = await context.Workouts.OrderByDescending(w => w.Date).Select(w => w.Id).FirstAsync();
+        context.PersonalRecords.Add(new PersonalRecord
+        {
+            UserId = user.Id,
+            ExerciseId = legsExercise.Id,
+            WorkoutId = latestWorkoutId,
+            Weight = 185m,
+            Reps = 5,
+            Date = today.AddDays(-2),
+            OneRepMax = 216m
+        });
+        await context.SaveChangesAsync();
+
+        var service = new AnalyticsService(context);
+        var summary = await service.GetAdvancedDashboardAsync(user.Id);
+
+        Assert.Equal(3, summary.TotalWorkouts);
+        Assert.Equal(1, summary.TotalPersonalRecords);
+        Assert.Equal(45m, summary.AverageWorkoutDuration);
+        Assert.Equal(785m, summary.AverageVolumePerWorkout);
+        Assert.Equal("Chest", summary.MostWorkedMuscleGroups.First().MuscleGroup);
+        Assert.Equal("Legs", summary.LeastWorkedMuscleGroups.First().MuscleGroup);
+        Assert.Contains(summary.VolumeTrend, point => point.WorkoutCount > 0);
+        Assert.Contains(summary.PersonalRecordTimeline, point => point.RecordCount == 1);
+        Assert.Contains(summary.ConsistencyHeatmap, cell => cell.Date.Date == today.AddDays(-2) && cell.WorkoutCount == 1);
+        Assert.Single(summary.RecentPersonalRecords);
+    }
+
+    [Fact]
+    public async Task GetExerciseProgressAsync_ReturnsSessionVolumeAndPersonalRecordMarkers()
+    {
+        using var factory = new TestDbContextFactory();
+        using var context = factory.CreateContext();
+
+        var user = CreateUser();
+        var exercise = CreateExercise("Bench Press", "Strength", "Barbell");
+        var firstWorkout = CreateWorkout(user.Id, exercise, new DateTime(2026, 4, 10), 95m, 8);
+        var secondWorkout = CreateWorkout(user.Id, exercise, new DateTime(2026, 4, 17), 105m, 5);
+
+        context.Users.Add(user);
+        context.Exercises.Add(exercise);
+        context.Workouts.AddRange(firstWorkout, secondWorkout);
+        await context.SaveChangesAsync();
+
+        context.PersonalRecords.Add(new PersonalRecord
+        {
+            UserId = user.Id,
+            ExerciseId = exercise.Id,
+            WorkoutId = secondWorkout.Id,
+            Weight = 105m,
+            Reps = 5,
+            Date = secondWorkout.Date,
+            OneRepMax = 122.5m
+        });
+        await context.SaveChangesAsync();
+
+        var service = new AnalyticsService(context);
+        var summary = await service.GetExerciseProgressAsync(user.Id, exercise.Id);
+
+        Assert.NotNull(summary);
+        Assert.Equal("Bench Press", summary!.ExerciseName);
+        Assert.Equal(2, summary.SessionCount);
+        Assert.Equal(1285m, summary.TotalVolume);
+        Assert.Equal(105m, summary.BestWeight);
+        Assert.Equal(120.32m, summary.BestEstimatedOneRepMax);
+        Assert.Equal(122.5m, summary.BestOneRepMax);
+
+        var prPoint = Assert.Single(summary.ProgressPoints.Where(point => point.HasPersonalRecord));
+        Assert.Equal(secondWorkout.Id, prPoint.WorkoutId);
+        Assert.Equal(105m, prPoint.PersonalRecordWeight);
+        Assert.Equal(120.32m, prPoint.EstimatedOneRepMax);
+        Assert.Equal(525m, summary.ProgressPoints.Last().Volume);
+    }
+
     private static Workout CreateWorkout(string userId, Exercise exercise, DateTime date, decimal weight, int reps) => new()
     {
         UserId = userId,
@@ -228,7 +415,7 @@ public class PersonalRecordServiceTests
             Weight = 100m,
             Reps = 5,
             Date = previousWorkout.Date,
-            OneRepMax = 116.67m
+            OneRepMax = 114.58m
         });
 
         var workout = new Workout
@@ -261,6 +448,7 @@ public class PersonalRecordServiceTests
         Assert.Equal(exercise.Id, record.ExerciseId);
         Assert.Equal(105m, record.Weight);
         Assert.Equal(5, record.Reps);
+        Assert.Equal(120.32m, record.OneRepMax);
     }
 
     private static ApplicationUser CreateUser(string id = "user-5") => new()

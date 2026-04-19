@@ -168,6 +168,11 @@ public class StartModel : PageModel
             return await OnGetAsync(WorkoutId);
         }
 
+        if (result.UnlockedAchievementIds.Any())
+        {
+            TempData["UnlockedAchievementIds"] = string.Join(',', result.UnlockedAchievementIds);
+        }
+
         return RedirectToPage("/Workouts/Details", new { id = WorkoutId });
     }
 

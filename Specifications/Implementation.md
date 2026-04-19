@@ -236,15 +236,15 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### Calendar View
 
-- [ ] Create Calendar page (`/Calendar`)
-  - [ ] Display monthly calendar
-  - [ ] Show workouts on completed dates
-  - [ ] Show planned workouts
-  - [ ] Click date to plan/view workout
-- [ ] Implement calendar with Alpine.js or library
+- [x] Create Calendar page (`/Calendar`)
+  - [x] Display monthly calendar
+  - [x] Show workouts on completed dates
+  - [x] Show planned workouts
+  - [x] Click date to plan/view workout
+- [x] Implement calendar with Alpine.js or library
 - [ ] Add drag-and-drop for planning (optional)
-- [ ] Style with Tailwind CSS
-- [ ] Make responsive (mobile view: list/agenda)
+- [x] Style with Tailwind CSS
+- [x] Make responsive (mobile view: list/agenda)
 
 ### Personal Records Tracking
 
@@ -285,17 +285,17 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### Progress Charts
 
-- [ ] Implement charting library
-- [ ] Create Exercise Progress page (`/Progress/Exercise/{id}`)
-  - [ ] Line chart of weight progression over time
-  - [ ] Volume progression
-  - [ ] Show PRs on chart
-- [ ] Create Overall Progress page (`/Progress`)
-  - [ ] Total volume over time
-  - [ ] Workout frequency over time
-  - [ ] Body weight over time (if tracked)
-- [ ] Make charts dark mode compatible
-- [ ] Make charts responsive
+- [x] Implement charting library
+- [x] Create Exercise Progress page (`/Progress/Exercise/{id}`)
+  - [x] Line chart of weight progression over time
+  - [x] Volume progression
+  - [x] Show PRs on chart
+- [x] Create Overall Progress page (`/Progress`)
+  - [x] Total volume over time
+  - [x] Workout frequency over time
+  - [x] Body weight over time (if tracked)
+- [x] Make charts dark mode compatible
+- [x] Make charts responsive
 
 ---
 
@@ -303,78 +303,78 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### Body Measurement Tracking
 
-- [ ] Create `BodyMeasurement` model
-  - [ ] Id, UserId, Date, Weight, BodyFatPercentage, Chest, Waist, Arms, Legs, Notes
-- [ ] Add database migration
-- [ ] Create Measurements page (`/Measurements`)
-  - [ ] List all measurements
-  - [ ] Add new measurement
-  - [ ] Edit measurement
-  - [ ] Delete measurement
-- [ ] Create charts for measurement trends
-- [ ] Add to monthly summary
-- [ ] Style with Tailwind CSS
+- [x] Create `BodyMeasurement` model
+  - [x] Id, UserId, Date, Weight, BodyFatPercentage, Chest, Waist, Arms, Legs, Notes
+- [x] Add database migration
+- [x] Create Measurements page (`/Measurements`)
+  - [x] List all measurements
+  - [x] Add new measurement
+  - [x] Edit measurement
+  - [x] Delete measurement
+- [x] Create charts for measurement trends
+- [x] Add to monthly summary
+- [x] Style with Tailwind CSS
 
 ### Progress Photos
 
-- [ ] Create `ProgressPhoto` model
-  - [ ] Id, UserId, Date, PhotoPath, Notes
-- [ ] Add database migration
-- [ ] Create Progress Photos page (`/Photos`)
-  - [ ] Upload photos
-  - [ ] View photo gallery
-  - [ ] Compare photos (before/after view)
-  - [ ] Delete photos
-- [ ] Implement file upload handling
-- [ ] Store photos securely
-- [ ] Add image optimization
-- [ ] Style with Tailwind CSS
+- [x] Create `ProgressPhoto` model
+  - [x] Id, UserId, Date, PhotoPath, Notes
+- [x] Add database migration
+- [x] Create Progress Photos page (`/Photos`)
+  - [x] Upload photos
+  - [x] View photo gallery
+  - [x] Compare photos (before/after view)
+  - [x] Delete photos
+- [x] Implement file upload handling
+- [x] Store photos securely
+- [x] Add image optimization
+- [x] Style with Tailwind CSS
 
 ### Advanced Analytics
 
-- [ ] Create Analytics Dashboard (`/Analytics`)
-  - [ ] Most worked muscle groups
-  - [ ] Least worked muscle groups
-  - [ ] Workout duration averages
-  - [ ] Volume trends
-  - [ ] PR timeline
-  - [ ] Workout consistency (heatmap)
-- [ ] Implement advanced calculations
-- [ ] Create interactive charts
-- [ ] Export analytics to PDF (optional)
-- [ ] Style with Tailwind CSS
+- [x] Create Analytics Dashboard (`/Analytics`)
+  - [x] Most worked muscle groups
+  - [x] Least worked muscle groups
+  - [x] Workout duration averages
+  - [x] Volume trends
+  - [x] PR timeline
+  - [x] Workout consistency (heatmap)
+- [x] Implement advanced calculations
+- [x] Create interactive charts
+- [x] Export analytics to PDF (optional)
+- [x] Style with Tailwind CSS
 
 ### 1RM Estimates
 
-- [ ] Implement 1RM calculation formulas
-  - [ ] Epley formula
-  - [ ] Brzycki formula
-  - [ ] Average of multiple formulas
-- [ ] Display 1RM estimates on exercise pages
-- [ ] Show 1RM progression over time
-- [ ] Add to PR tracking
-- [ ] Create 1RM calculator tool page
+- [x] Implement 1RM calculation formulas
+  - [x] Epley formula
+  - [x] Brzycki formula
+  - [x] Average of multiple formulas
+- [x] Display 1RM estimates on exercise pages
+- [x] Show 1RM progression over time
+- [x] Add to PR tracking
+- [x] Create 1RM calculator tool page
 
 ### Workout Suggestions
 
-- [ ] Implement suggestion algorithm
-  - [ ] Suggest exercises based on least-worked muscle groups
-  - [ ] Suggest workouts based on templates and history
-- [ ] Display suggestions on dashboard
-- [ ] Add "Use Suggestion" quick action
-- [ ] Style with Tailwind CSS
+- [x] Implement suggestion algorithm
+  - [x] Suggest exercises based on least-worked muscle groups
+  - [x] Suggest workouts based on templates and history
+- [x] Display suggestions on dashboard
+- [x] Add "Use Suggestion" quick action
+- [x] Style with Tailwind CSS
 
 ### Data Export
 
-- [ ] Create Export page (`/Export`)
-  - [ ] Export workouts to CSV
-  - [ ] Export workouts to JSON
-  - [ ] Export measurements to CSV
-  - [ ] Export PRs to CSV
-  - [ ] Date range filter for export
-- [ ] Implement export functionality
-- [ ] Add download trigger
-- [ ] Style with Tailwind CSS
+- [x] Create Export page (`/Export`)
+  - [x] Export workouts to CSV
+  - [x] Export workouts to JSON
+  - [x] Export measurements to CSV
+  - [x] Export PRs to CSV
+  - [x] Date range filter for export
+- [x] Implement export functionality
+- [x] Add download trigger
+- [x] Style with Tailwind CSS
 
 ---
 
@@ -382,25 +382,25 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### Achievements & Gamification
 
-- [ ] Create `Achievement` model
-  - [ ] Id, Name, Description, Icon, Criteria
-- [ ] Create `UserAchievement` model
-  - [ ] Id, UserId, AchievementId, UnlockedDate
+- [x] Create `Achievement` model
+  - [x] Id, Name, Description, Icon, Criteria
+- [x] Create `UserAchievement` model
+  - [x] Id, UserId, AchievementId, UnlockedDate
 - [ ] Add database migration
-- [ ] Define achievement criteria
-  - [ ] First workout
-  - [ ] 10 workouts
-  - [ ] 30-day streak
-  - [ ] 100 total sets
-  - [ ] First PR
-  - [ ] 10 PRs
-  - [ ] 1M total volume
-- [ ] Implement achievement detection logic
-- [ ] Create achievement unlock notification
-- [ ] Create Achievements page (`/Achievements`)
-  - [ ] Show all achievements (locked/unlocked)
-  - [ ] Show progress to locked achievements
-- [ ] Style with Tailwind CSS
+- [x] Define achievement criteria
+  - [x] First workout
+  - [x] 10 workouts
+  - [x] 30-day streak
+  - [x] 100 total sets
+  - [x] First PR
+  - [x] 10 PRs
+  - [x] 1M total volume
+- [x] Implement achievement detection logic
+- [x] Create achievement unlock notification
+- [x] Create Achievements page (`/Achievements`)
+  - [x] Show all achievements (locked/unlocked)
+  - [x] Show progress to locked achievements
+- [x] Style with Tailwind CSS
 
 ### Challenges
 

@@ -1,0 +1,275 @@
+@page "{id:int}"
+@using System.Text.Json
+@model FitTracker.Pages.Progress.ExerciseModel
+@{
+    ViewData["Title"] = Model.Summary?.ExerciseName ?? "Exercise Progress";
+}
+
+<div class="page-shell">
+    @if (Model.Summary != null)
+    {
+        <div class="flex flex-wrap gap-3">
+            <a asp-page="/Exercises/Details" asp-route-id="@Model.Summary.ExerciseId" class="chip">← Back to exercise details</a>
+            <a asp-page="/Progress/Index" class="chip">Overall progress</a>
+        </div>
+
+        <section class="hero-card">
+            <div class="page-header gap-8">
+                <div>
+                    <p class="page-eyebrow">Exercise progress</p>
+                    <h1 class="page-title">@Model.Summary.ExerciseName</h1>
+                    <p class="page-description">Track best-set weight, session volume, and the workouts where you set new personal records.</p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="chip chip-primary">@Model.Summary.Category</span>
+                        <span class="chip">@Model.Summary.Equipment</span>
+                        @foreach (var muscle in Model.Summary.MuscleGroups.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            <span class="chip">@muscle</span>
+                        }
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a asp-page="/Workouts/Start" class="btn btn-primary">Log workout</a>
+                    <a asp-page="/PRs/Index" class="btn btn-secondary">View PRs</a>
+                    <a asp-page="/OneRepMax" class="btn btn-secondary">1RM calculator</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="metric-card">
+                <p class="metric-label">Logged sessions</p>
+                <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.SessionCount</p>
+                <p class="metric-meta">Completed workouts containing this exercise</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Best weight</p>
+                <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.BestWeight.ToString("0.##")</p>
+                <p class="metric-meta">Heaviest logged set</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Total volume</p>
+                <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.TotalVolume.ToString("N0")</p>
+                <p class="metric-meta">Weight × reps across all sessions</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Personal records</p>
+                <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.PersonalRecordCount</p>
+                <p class="metric-meta">Best estimated 1RM @Model.Summary.BestOneRepMax.ToString("0.##")</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Best avg 1RM</p>
+                <p class="metric-value text-sky-600 dark:text-sky-300">@Model.Summary.BestEstimatedOneRepMax.ToString("0.##")</p>
+                <p class="metric-meta">Calculated from logged top sets</p>
+            </div>
+        </section>
+
+        @if (Model.Summary.ProgressPoints.Any())
+        {
+            <div class="grid gap-8 xl:grid-cols-2">
+                <section class="surface-card">
+                    <div class="mb-6 flex items-center justify-between gap-4">
+                        <div>
+                            <p class="page-eyebrow">Weight progression</p>
+                            <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Best-set weight over time</h2>
+                        </div>
+                        <span class="chip">PR markers included</span>
+                    </div>
+                    <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                        <canvas id="exerciseWeightChart" height="180"></canvas>
+                    </div>
+                </section>
+
+                <section class="surface-card">
+                    <div class="mb-6 flex items-center justify-between gap-4">
+                        <div>
+                            <p class="page-eyebrow">Volume progression</p>
+                            <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Session volume trend</h2>
+                        </div>
+                        <span class="chip">@Model.Summary.LastPerformed?.ToString("MMM dd, yyyy") latest</span>
+                    </div>
+                    <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                        <canvas id="exerciseVolumeChart" height="180"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <section class="surface-card">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">1RM progression</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Estimated 1RM over time</h2>
+                    </div>
+                    <span class="chip">Average of Epley and Brzycki</span>
+                </div>
+                <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                    <canvas id="exerciseOneRepMaxChart" height="180"></canvas>
+                </div>
+            </section>
+
+            <section class="surface-card">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">Session history</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Recent training sessions</h2>
+                    </div>
+                    <span class="chip">Newest first</span>
+                </div>
+                <div class="table-shell">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Best set</th>
+                                <th>Avg 1RM</th>
+                                <th>Volume</th>
+                                <th>PR</th>
+                                <th>Workout</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var point in Model.Summary.ProgressPoints.OrderByDescending(point => point.Date))
+                            {
+                                <tr>
+                                    <td class="font-semibold">@point.Date.ToString("MMM dd, yyyy")</td>
+                                    <td>@point.BestWeight.ToString("0.##") × @point.BestReps</td>
+                                    <td>@point.EstimatedOneRepMax.ToString("0.##")</td>
+                                    <td>@point.Volume.ToString("N0")</td>
+                                    <td>
+                                        @if (point.HasPersonalRecord)
+                                        {
+                                            <span class="chip chip-success">PR @point.PersonalRecordOneRepMax?.ToString("0.##")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-sm text-slate-500 dark:text-slate-400">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-page="/Workouts/Details" asp-route-id="@point.WorkoutId" class="text-sm font-medium text-primary-600 transition hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-200">View workout</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No logged sessions yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Once you complete workouts with this exercise, the weight and volume charts will appear here.</p>
+                <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start a workout</a>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    @if (Model.Summary != null && Model.Summary.ProgressPoints.Any())
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const exerciseLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.Label)));
+            const exerciseWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.BestWeight)));
+            const exerciseOneRepMaxes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.EstimatedOneRepMax)));
+            const exerciseVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.Volume)));
+            const exercisePersonalRecords = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.HasPersonalRecord ? point.PersonalRecordWeight : null)));
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const axisColor = isDarkMode ? '#cbd5e1' : '#475569';
+            const gridColor = isDarkMode ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.25)';
+
+            const sharedOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: { color: axisColor },
+                        grid: { color: gridColor }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: axisColor },
+                        grid: { color: gridColor }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: axisColor } }
+                }
+            };
+
+            const exerciseWeightContext = document.getElementById('exerciseWeightChart');
+            if (exerciseWeightContext) {
+                new Chart(exerciseWeightContext, {
+                    type: 'line',
+                    data: {
+                        labels: exerciseLabels,
+                        datasets: [
+                            {
+                                label: 'Best-set weight',
+                                data: exerciseWeights,
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.18)',
+                                fill: true,
+                                tension: 0.35
+                            },
+                            {
+                                label: 'PR session',
+                                data: exercisePersonalRecords,
+                                showLine: false,
+                                pointRadius: 6,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                                pointBorderColor: 'rgba(255, 255, 255, 0.95)',
+                                pointBorderWidth: 2
+                            }
+                        ]
+                    },
+                    options: sharedOptions
+                });
+            }
+
+            const exerciseVolumeContext = document.getElementById('exerciseVolumeChart');
+            if (exerciseVolumeContext) {
+                new Chart(exerciseVolumeContext, {
+                    type: 'bar',
+                    data: {
+                        labels: exerciseLabels,
+                        datasets: [
+                            {
+                                label: 'Session volume',
+                                data: exerciseVolumes,
+                                backgroundColor: 'rgba(139, 92, 246, 0.72)',
+                                borderRadius: 12
+                            }
+                        ]
+                    },
+                    options: sharedOptions
+                });
+            }
+
+            const exerciseOneRepMaxContext = document.getElementById('exerciseOneRepMaxChart');
+            if (exerciseOneRepMaxContext) {
+                new Chart(exerciseOneRepMaxContext, {
+                    type: 'line',
+                    data: {
+                        labels: exerciseLabels,
+                        datasets: [
+                            {
+                                label: 'Estimated 1RM',
+                                data: exerciseOneRepMaxes,
+                                borderColor: 'rgba(14, 165, 233, 1)',
+                                backgroundColor: 'rgba(14, 165, 233, 0.18)',
+                                fill: true,
+                                tension: 0.35
+                            }
+                        ]
+                    },
+                    options: sharedOptions
+                });
+            }
+        </script>
+    }
+}

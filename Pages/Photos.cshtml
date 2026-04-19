@@ -1,0 +1,151 @@
+@page
+@model FitTracker.Pages.PhotosModel
+@{
+    ViewData["Title"] = "Progress Photos";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Progress photos</p>
+                <h1 class="page-title">Capture visual progress over time.</h1>
+                <p class="page-description">Upload photos, compare before-and-after check-ins, and keep your image history private to your account.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Measurements" class="btn btn-secondary">Measurements</a>
+                <a asp-page="/Progress/Index" class="btn btn-secondary">Progress</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+        <section class="surface-card">
+            <div class="mb-6">
+                <p class="page-eyebrow">Upload</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Add a new progress photo</h2>
+            </div>
+
+            <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="space-y-5">
+                <div asp-validation-summary="ModelOnly" class="rounded-[1.25rem] border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"></div>
+
+                <div>
+                    <label asp-for="Upload.Date" class="input-label"></label>
+                    <input asp-for="Upload.Date" type="date" class="input" />
+                    <span asp-validation-for="Upload.Date" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Upload.File" class="input-label">Photo</label>
+                    <input asp-for="Upload.File" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="input" />
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Supported formats: JPG, PNG, WebP. Max file size: 5 MB. Uploads are auto-oriented and optimized before storage.</p>
+                    <span asp-validation-for="Upload.File" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Upload.Notes" class="input-label"></label>
+                    <textarea asp-for="Upload.Notes" rows="3" class="input" placeholder="Lighting, body weight, pose, or anything you want to remember."></textarea>
+                    <span asp-validation-for="Upload.Notes" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Upload photo</button>
+            </form>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Compare photos</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Before and after</h2>
+                </div>
+                <span class="chip">Private photo storage</span>
+            </div>
+
+            @if (Model.LeftPhoto != null && Model.RightPhoto != null)
+            {
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach (var photo in new[] { Model.LeftPhoto, Model.RightPhoto })
+                    {
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                            <img src="@Url.Page("/Photos", "Image", new { id = photo!.Id })" alt="Progress photo from @photo.Date.ToString("MMM dd, yyyy")" class="h-80 w-full rounded-[1.25rem] object-cover" loading="lazy" />
+                            <p class="mt-4 text-lg font-semibold text-slate-950 dark:text-white">@photo.Date.ToString("MMM dd, yyyy")</p>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@(string.IsNullOrWhiteSpace(photo.Notes) ? "No notes added." : photo.Notes)</p>
+                        </div>
+                    }
+                </div>
+            }
+            else if (Model.Photos.Any())
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Select two photos to compare</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Use the comparison shortcuts in the gallery below to pin a left and right photo.</p>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No photos uploaded yet</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Upload your first progress photo to start building a private photo timeline.</p>
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Gallery</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Your photo timeline</h2>
+            </div>
+            <span class="chip">@Model.Photos.Count photo@(Model.Photos.Count == 1 ? string.Empty : "s")</span>
+        </div>
+
+        @if (Model.Photos.Any())
+        {
+            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                @foreach (var photo in Model.Photos)
+                {
+                    var isLeft = Model.LeftPhoto?.Id == photo.Id;
+                    var isRight = Model.RightPhoto?.Id == photo.Id;
+                    <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                        <img src="@Url.Page("/Photos", "Image", new { id = photo.Id })" alt="Progress photo from @photo.Date.ToString("MMM dd, yyyy")" class="h-72 w-full rounded-[1.25rem] object-cover" loading="lazy" />
+                        <div class="mt-4 flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-lg font-semibold text-slate-950 dark:text-white">@photo.Date.ToString("MMM dd, yyyy")</p>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@(string.IsNullOrWhiteSpace(photo.Notes) ? "No notes added." : photo.Notes)</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                @if (isLeft)
+                                {
+                                    <span class="chip chip-primary">Left</span>
+                                }
+                                @if (isRight)
+                                {
+                                    <span class="chip chip-success">Right</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <a asp-page="/Photos" asp-route-leftId="@photo.Id" asp-route-rightId="@Model.RightPhoto?.Id" class="btn btn-secondary">Set left</a>
+                            <a asp-page="/Photos" asp-route-leftId="@Model.LeftPhoto?.Id" asp-route-rightId="@photo.Id" class="btn btn-secondary">Set right</a>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@photo.Id" asp-route-leftId="@Model.LeftPhoto?.Id" asp-route-rightId="@Model.RightPhoto?.Id" onsubmit="return confirm('Delete this progress photo?');">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Your gallery is empty</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Upload progress photos over time to compare body changes visually.</p>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

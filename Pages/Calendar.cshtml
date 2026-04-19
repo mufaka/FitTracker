@@ -1,0 +1,215 @@
+@page
+@model FitTracker.Pages.CalendarModel
+@{
+    ViewData["Title"] = "Calendar";
+}
+
+<div class="page-shell" x-data="{ view: window.innerWidth < 640 ? 'agenda' : 'month' }">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Training calendar</p>
+                <h1 class="page-title">See your month at a glance.</h1>
+                <p class="page-description">Track completed workouts, spot planned sessions, and jump into any training day from a single monthly view.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+                <a asp-page="/Analytics/Daily" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="btn btn-secondary">View selected day</a>
+                <a asp-page="/Workouts/History" class="btn btn-secondary">Workout history</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-end">
+            <a href="?month=@Model.SelectedMonth.AddMonths(-1).ToString("yyyy-MM")&date=@Model.SelectedMonth.AddMonths(-1).ToString("yyyy-MM-01")" class="btn btn-secondary">← Previous month</a>
+            <div>
+                <label class="input-label" for="monthPicker">Month</label>
+                <input id="monthPicker"
+                       type="month"
+                       value="@Model.SelectedMonth.ToString("yyyy-MM")"
+                       onchange="window.location.href='?month=' + this.value + '&date=' + this.value + '-01'"
+                       class="input" />
+            </div>
+            <a href="?month=@Model.SelectedMonth.AddMonths(1).ToString("yyyy-MM")&date=@Model.SelectedMonth.AddMonths(1).ToString("yyyy-MM-01")" class="btn btn-secondary">Next month →</a>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-3">
+                <button type="button" class="btn btn-secondary" x-bind:class="view === 'month' ? 'btn-primary' : ''" x-on:click="view = 'month'">Month grid</button>
+                <button type="button" class="btn btn-secondary" x-bind:class="view === 'agenda' ? 'btn-primary' : ''" x-on:click="view = 'agenda'">Agenda</button>
+            </div>
+            <div class="flex flex-wrap gap-2 text-sm">
+                <span class="chip chip-success">Completed @Model.CompletedWorkoutCount</span>
+                <span class="chip chip-primary">Planned @Model.PlannedWorkoutCount</span>
+                <span class="chip">@Model.ActiveDays active day@(Model.ActiveDays == 1 ? string.Empty : "s")</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card" x-show="view === 'month'">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Monthly calendar</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@Model.SelectedMonth.ToString("MMMM yyyy")</h2>
+            </div>
+            <span class="chip">Tap any date to review the day</span>
+        </div>
+
+        <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+        </div>
+
+        <div class="mt-3 space-y-2">
+            @foreach (var week in Model.CalendarWeeks)
+            {
+                <div class="grid grid-cols-7 gap-2">
+                    @foreach (var day in week.Days)
+                    {
+                        var dayClasses = day.IsSelected
+                            ? "border-primary-500 bg-primary-500/10 ring-2 ring-primary-500/30 dark:bg-primary-500/10"
+                            : day.IsCurrentMonth
+                                ? "border-slate-200/80 bg-white/70 hover:border-primary-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/70"
+                                : "border-slate-200/60 bg-slate-100/70 opacity-65 dark:border-slate-800/70 dark:bg-slate-950/60";
+
+                        <a href="?month=@Model.SelectedMonth.ToString("yyyy-MM")&date=@day.Date.ToString("yyyy-MM-dd")"
+                           class="flex min-h-28 flex-col rounded-[1.5rem] border p-3 text-left transition hover:-translate-y-0.5 @dayClasses">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-sm font-semibold @(day.IsCurrentMonth ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-slate-400")">@day.Date.Day</span>
+                                @if (day.IsToday)
+                                {
+                                    <span class="chip chip-primary">Today</span>
+                                }
+                            </div>
+
+                            <div class="mt-3 flex-1 space-y-2">
+                                @if (day.Summary.CompletedWorkouts > 0)
+                                {
+                                    <div class="rounded-2xl bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                        @day.Summary.CompletedWorkouts completed
+                                    </div>
+                                }
+                                @if (day.Summary.PlannedWorkouts > 0)
+                                {
+                                    <div class="rounded-2xl bg-primary-50 px-2 py-1 text-xs font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-200">
+                                        @day.Summary.PlannedWorkouts planned
+                                    </div>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="surface-card" x-show="view === 'agenda'" x-cloak>
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Agenda view</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Workout days in @Model.SelectedMonth.ToString("MMMM")</h2>
+            </div>
+            <span class="chip">Mobile-friendly timeline</span>
+        </div>
+
+        @if (Model.CalendarWeeks.SelectMany(week => week.Days).Any(day => day.IsCurrentMonth && day.Summary.TotalWorkouts > 0))
+        {
+            <div class="space-y-3">
+                @foreach (var day in Model.CalendarWeeks.SelectMany(week => week.Days).Where(day => day.IsCurrentMonth && day.Summary.TotalWorkouts > 0).OrderBy(day => day.Date))
+                {
+                    <a href="?month=@Model.SelectedMonth.ToString("yyyy-MM")&date=@day.Date.ToString("yyyy-MM-dd")"
+                       class="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-primary-500/30">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-lg font-semibold text-slate-950 dark:text-white">@day.Date.ToString("dddd, MMM dd")</p>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@day.Summary.TotalWorkouts workout@(day.Summary.TotalWorkouts == 1 ? string.Empty : "s") scheduled</p>
+                            </div>
+                            @if (day.IsSelected)
+                            {
+                                <span class="chip chip-primary">Selected</span>
+                            }
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-sm">
+                            @if (day.Summary.CompletedWorkouts > 0)
+                            {
+                                <span class="chip chip-success">@day.Summary.CompletedWorkouts completed</span>
+                            }
+                            @if (day.Summary.PlannedWorkouts > 0)
+                            {
+                                <span class="chip chip-primary">@day.Summary.PlannedWorkouts planned</span>
+                            }
+                            @if (day.Summary.TotalDuration > 0)
+                            {
+                                <span class="chip">@day.Summary.TotalDuration min completed</span>
+                            }
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workouts on this month yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Once you log or leave an in-progress workout in this month, it will show up in the calendar timeline.</p>
+            </div>
+        }
+    </section>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Selected day</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</h2>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Analytics/Daily" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="btn btn-secondary">Daily summary</a>
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+            </div>
+        </div>
+
+        @if (Model.SelectedDateWorkouts.Any())
+        {
+            <div class="space-y-4">
+                @foreach (var workout in Model.SelectedDateWorkouts)
+                {
+                    var actionPage = workout.IsCompleted ? "/Workouts/Details" : "/Workouts/Start";
+                    var actionText = workout.IsCompleted ? "View workout" : "Continue workout";
+                    <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@workout.Date.ToString("h:mm tt")</h3>
+                                    <span class="chip @(workout.IsCompleted ? "chip-success" : "chip-primary")">@(workout.IsCompleted ? "Completed" : "Planned / in progress")</span>
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@workout.WorkoutExercises.Count exercise@(workout.WorkoutExercises.Count == 1 ? string.Empty : "s") · @(workout.IsCompleted ? $"{workout.Duration} min" : "Ready to train")</p>
+                                @if (workout.WorkoutExercises.Any())
+                                {
+                                    <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">@string.Join(", ", workout.WorkoutExercises.OrderBy(we => we.Order).Take(4).Select(we => we.Exercise.Name))</p>
+                                }
+                            </div>
+                            <a asp-page="@actionPage" asp-route-id="@workout.Id" class="btn btn-secondary">@actionText</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Nothing on this date yet</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Pick another day to review activity, or start a workout to put this date on the calendar.</p>
+                <div class="mt-5 flex flex-wrap justify-center gap-3">
+                    <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+                    <a asp-page="/Analytics/Daily" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="btn btn-secondary">Open daily summary</a>
+                </div>
+            </div>
+        }
+    </section>
+</div>

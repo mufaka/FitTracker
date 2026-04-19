@@ -13,12 +13,14 @@ namespace FitTracker.Pages.Workouts;
 public class DetailsModel : PageModel
 {
     private readonly ApplicationDbContext _context;
+    private readonly IAchievementService _achievementService;
     private readonly IPersonalRecordService _personalRecordService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public DetailsModel(ApplicationDbContext context, IPersonalRecordService personalRecordService, UserManager<ApplicationUser> userManager)
+    public DetailsModel(ApplicationDbContext context, IAchievementService achievementService, IPersonalRecordService personalRecordService, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _achievementService = achievementService;
         _personalRecordService = personalRecordService;
         _userManager = userManager;
     }
@@ -29,6 +31,10 @@ public class DetailsModel : PageModel
     public decimal TotalVolume { get; set; }
     public decimal AverageRPE { get; set; }
     public List<PersonalRecord> WorkoutPersonalRecords { get; set; } = new();
+    public List<UserAchievement> RecentlyUnlockedAchievements { get; set; } = new();
+
+    [TempData]
+    public string? UnlockedAchievementIds { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -55,6 +61,22 @@ public class DetailsModel : PageModel
         var setsWithRPE = allSets.Where(s => s.RPE.HasValue).ToList();
         AverageRPE = setsWithRPE.Any() ? (decimal)setsWithRPE.Average(s => s.RPE!.Value) : 0;
         WorkoutPersonalRecords = await _personalRecordService.GetRecordsForWorkoutAsync(id, userId);
+
+        if (!string.IsNullOrWhiteSpace(UnlockedAchievementIds))
+        {
+            var achievementIds = UnlockedAchievementIds
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => int.TryParse(value, out var parsedValue) ? parsedValue : (int?)null)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
+                .Distinct()
+                .ToList();
+
+            if (achievementIds.Any())
+            {
+                RecentlyUnlockedAchievements = await _achievementService.GetUnlockedAchievementsAsync(userId, achievementIds);
+            }
+        }
 
         return Page();
     }

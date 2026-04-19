@@ -1,0 +1,134 @@
+@page
+@model FitTracker.Pages.ExportModel
+@{
+    ViewData["Title"] = "Export";
+    var startDateRoute = Model.StartDate?.ToString("yyyy-MM-dd");
+    var endDateRoute = Model.EndDate?.ToString("yyyy-MM-dd");
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Data export</p>
+                <h1 class="page-title">Download your training data anytime.</h1>
+                <p class="page-description">Export workouts, measurements, and personal records with an optional date range. CSV exports are spreadsheet-friendly, while JSON keeps nested workout details intact.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Analytics/Index" class="btn btn-secondary">Analytics</a>
+                <a asp-page="/Progress/Index" class="btn btn-secondary">Progress</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Filter</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Choose a date range</h2>
+            </div>
+            <span class="chip">@(Model.HasDateFilter ? "Filtered export" : "All-time export")</span>
+        </div>
+
+        <form method="get" class="space-y-5">
+            <div asp-validation-summary="ModelOnly" class="rounded-[1.25rem] border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"></div>
+
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+                <div>
+                    <label asp-for="StartDate" class="input-label">Start date</label>
+                    <input asp-for="StartDate" type="date" class="input" />
+                    <span asp-validation-for="StartDate" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
+                </div>
+                <div>
+                    <label asp-for="EndDate" class="input-label">End date</label>
+                    <input asp-for="EndDate" type="date" class="input" />
+                    <span asp-validation-for="EndDate" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="btn btn-primary">Apply filter</button>
+                    <a asp-page="/Export" class="btn btn-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <div class="grid gap-6 xl:grid-cols-3">
+        <section class="surface-card xl:col-span-2">
+            <div class="mb-6">
+                <p class="page-eyebrow">Workouts</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Session exports</h2>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">CSV exports flatten workouts into one row per set. JSON exports preserve workouts, exercises, and sets in nested form.</p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-lg font-semibold text-slate-950 dark:text-white">Workouts CSV</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Great for spreadsheets, pivot tables, and quick ad-hoc analysis.</p>
+                    <a asp-page="/Export" asp-page-handler="WorkoutsCsv" asp-route-startDate="@startDateRoute" asp-route-endDate="@endDateRoute" class="btn btn-primary mt-5">Download CSV</a>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-lg font-semibold text-slate-950 dark:text-white">Workouts JSON</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Best for backups, integrations, and preserving full workout structure.</p>
+                    <a asp-page="/Export" asp-page-handler="WorkoutsJson" asp-route-startDate="@startDateRoute" asp-route-endDate="@endDateRoute" class="btn btn-primary mt-5">Download JSON</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6">
+                <p class="page-eyebrow">Other exports</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Measurements and PRs</h2>
+            </div>
+
+            <div class="space-y-4">
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-lg font-semibold text-slate-950 dark:text-white">Measurements CSV</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Export body weight, body fat, and body measurements.</p>
+                    <a asp-page="/Export" asp-page-handler="MeasurementsCsv" asp-route-startDate="@startDateRoute" asp-route-endDate="@endDateRoute" class="btn btn-secondary mt-5">Download CSV</a>
+                </div>
+                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                    <p class="text-lg font-semibold text-slate-950 dark:text-white">PRs CSV</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Export personal record history with exercise names and 1RM values.</p>
+                    <a asp-page="/Export" asp-page-handler="PersonalRecordsCsv" asp-route-startDate="@startDateRoute" asp-route-endDate="@endDateRoute" class="btn btn-secondary mt-5">Download CSV</a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">What’s included</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Export coverage</h2>
+            </div>
+            <span class="chip">Date filter applies to every download</span>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="metric-card">
+                <p class="metric-label">Workout CSV</p>
+                <p class="metric-value text-primary-600 dark:text-primary-300">Sets</p>
+                <p class="metric-meta">One row per set with workout and exercise details.</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Workout JSON</p>
+                <p class="metric-value text-emerald-600 dark:text-emerald-300">Nested</p>
+                <p class="metric-meta">Workouts include exercises and sets.</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Measurements</p>
+                <p class="metric-value text-violet-600 dark:text-violet-300">CSV</p>
+                <p class="metric-meta">Weight, body fat, and body measurements.</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">PR history</p>
+                <p class="metric-value text-amber-600 dark:text-amber-300">CSV</p>
+                <p class="metric-meta">Exercise name, reps, load, and 1RM.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

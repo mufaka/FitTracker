@@ -1,0 +1,300 @@
+@page
+@using System.Text.Json
+@model FitTracker.Pages.Analytics.IndexModel
+@{
+    ViewData["Title"] = "Analytics Dashboard";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Advanced analytics</p>
+                <h1 class="page-title">See the patterns behind your training.</h1>
+                <p class="page-description">Track muscle-group emphasis, workout duration averages, PR momentum, and consistency across the last 12 weeks.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="btn btn-primary">Overview</span>
+                <a asp-page="/Analytics/Daily" class="btn btn-secondary">Daily</a>
+                <a asp-page="/Analytics/Weekly" class="btn btn-secondary">Weekly</a>
+                <a asp-page="/Analytics/Monthly" class="btn btn-secondary">Monthly</a>
+                <a asp-page="/Analytics/Index" asp-page-handler="ExportPdf" class="btn btn-secondary">Export PDF</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="metric-card">
+            <p class="metric-label">Completed workouts</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.TotalWorkouts</p>
+            <p class="metric-meta">Across @Model.Summary.RangeStart.ToString("MMM dd") - @Model.Summary.RangeEnd.ToString("MMM dd")</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Average duration</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.AverageWorkoutDuration.ToString("0.0")</p>
+            <p class="metric-meta">Minutes per workout</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Average volume</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.AverageVolumePerWorkout.ToString("N0")</p>
+            <p class="metric-meta">Volume per completed workout</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Personal records</p>
+            <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.TotalPersonalRecords</p>
+            <p class="metric-meta">Logged during this period</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Volume trends</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Weekly workload trend</h2>
+                </div>
+                <span class="chip">Interactive chart</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="advancedVolumeChart" height="180"></canvas>
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">PR timeline</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Recent record momentum</h2>
+                </div>
+                <span class="chip">Last 6 months</span>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="advancedPrChart" height="180"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div class="grid gap-8 xl:grid-cols-2">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Most worked</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Top muscle groups</h2>
+                </div>
+                <span class="chip">By total volume</span>
+            </div>
+
+            @if (Model.Summary.MostWorkedMuscleGroups.Any())
+            {
+                <div class="space-y-3">
+                    @foreach (var item in Model.Summary.MostWorkedMuscleGroups)
+                    {
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-slate-950 dark:text-white">@item.MuscleGroup</p>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@item.WorkoutCount workout@(item.WorkoutCount == 1 ? string.Empty : "s") · @item.AverageDuration.ToString("0.0") min avg duration</p>
+                                </div>
+                                <span class="chip chip-primary">@item.Volume.ToString("N0")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No workout data yet</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Finish workouts to start ranking your most-worked muscle groups.</p>
+                </div>
+            }
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Least worked</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Areas needing attention</h2>
+                </div>
+                <span class="chip">Lowest recent volume</span>
+            </div>
+
+            @if (Model.Summary.LeastWorkedMuscleGroups.Any())
+            {
+                <div class="space-y-3">
+                    @foreach (var item in Model.Summary.LeastWorkedMuscleGroups)
+                    {
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-slate-950 dark:text-white">@item.MuscleGroup</p>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@item.WorkoutCount workout@(item.WorkoutCount == 1 ? string.Empty : "s") · @item.AverageDuration.ToString("0.0") min avg duration</p>
+                                </div>
+                                <span class="chip">@item.Volume.ToString("N0")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No muscle-group data yet</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Muscle-group rankings appear once your completed workouts contain logged sets.</p>
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Consistency heatmap</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Training consistency</h2>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <span class="chip">0</span>
+                <span class="chip chip-success">1+</span>
+                <span class="chip chip-primary">2+</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-2">
+            @foreach (var cell in Model.Summary.ConsistencyHeatmap)
+            {
+                var heatmapClasses = cell.WorkoutCount switch
+                {
+                    >= 2 => "bg-primary-500 text-white border-primary-400",
+                    1 => "bg-emerald-500/20 text-emerald-700 border-emerald-300 dark:text-emerald-200 dark:border-emerald-500/20",
+                    _ => "bg-white/70 text-slate-500 border-slate-200/80 dark:bg-slate-900/70 dark:text-slate-400 dark:border-slate-800"
+                };
+
+                <a asp-page="/Analytics/Daily" asp-route-date="@cell.Date.ToString("yyyy-MM-dd")" class="rounded-[1rem] border p-3 text-center transition hover:-translate-y-0.5 hover:shadow-lg @heatmapClasses" title="@cell.Date.ToString("MMM dd, yyyy") · @cell.WorkoutCount workout(s) · @cell.Volume.ToString("N0") volume">
+                    <div class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] opacity-80">@cell.Date.ToString("ddd")</div>
+                    <div class="mt-2 text-lg font-semibold">@cell.Date.Day</div>
+                    <div class="mt-2 text-[0.65rem] font-medium uppercase tracking-[0.18em] opacity-80">@cell.WorkoutCount</div>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="page-eyebrow">Recent PRs</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Latest records</h2>
+            </div>
+            <a asp-page="/PRs/Index" class="btn btn-secondary">View all PRs</a>
+        </div>
+
+        @if (Model.Summary.RecentPersonalRecords.Any())
+        {
+            <div class="space-y-3">
+                @foreach (var record in Model.Summary.RecentPersonalRecords)
+                {
+                    <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-lg font-semibold text-slate-950 dark:text-white">@record.Exercise.Name</p>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@record.Date.ToString("MMM dd, yyyy") · @record.Weight.ToString("0.##") × @record.Reps</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="chip chip-success">1RM @record.OneRepMax.ToString("0.##")</span>
+                                <a asp-page="/Progress/Exercise" asp-route-id="@record.ExerciseId" class="btn btn-secondary">View progress</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No PRs in this range</h3>
+                <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Push past previous bests to start filling the PR timeline and recent record feed.</p>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const volumeTrendLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Label)));
+        const volumeTrendValues = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Volume)));
+        const volumeTrendWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.WorkoutCount)));
+        const prTimelineLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.PersonalRecordTimeline.Select(point => point.Label)));
+        const prTimelineCounts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.PersonalRecordTimeline.Select(point => point.RecordCount)));
+
+        const legendColor = document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#334155';
+
+        const volumeContext = document.getElementById('advancedVolumeChart');
+        if (volumeContext) {
+            new Chart(volumeContext, {
+                type: 'bar',
+                data: {
+                    labels: volumeTrendLabels,
+                    datasets: [
+                        {
+                            label: 'Volume',
+                            data: volumeTrendValues,
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderRadius: 12,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Workouts',
+                            data: volumeTrendWorkouts,
+                            type: 'line',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            tension: 0.35,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true },
+                        y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: legendColor } }
+                    }
+                }
+            });
+        }
+
+        const prContext = document.getElementById('advancedPrChart');
+        if (prContext) {
+            new Chart(prContext, {
+                type: 'line',
+                data: {
+                    labels: prTimelineLabels,
+                    datasets: [
+                        {
+                            label: 'PRs logged',
+                            data: prTimelineCounts,
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                            fill: true,
+                            tension: 0.35
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { labels: { color: legendColor } }
+                    }
+                }
+            });
+        }
+    </script>
+}

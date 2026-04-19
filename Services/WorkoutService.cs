@@ -23,16 +23,18 @@ public class WorkoutService : IWorkoutService
 {
     private readonly ApplicationDbContext _context;
     private readonly IPersonalRecordService _personalRecordService;
+    private readonly IAchievementService _achievementService;
 
     public WorkoutService(ApplicationDbContext context)
-        : this(context, new PersonalRecordService(context))
+        : this(context, new PersonalRecordService(context), new AchievementService(context))
     {
     }
 
-    public WorkoutService(ApplicationDbContext context, IPersonalRecordService personalRecordService)
+    public WorkoutService(ApplicationDbContext context, IPersonalRecordService personalRecordService, IAchievementService achievementService)
     {
         _context = context;
         _personalRecordService = personalRecordService;
+        _achievementService = achievementService;
     }
 
     public async Task<Workout?> GetWorkoutAsync(int workoutId, string userId)
@@ -208,8 +210,9 @@ public class WorkoutService : IWorkoutService
 
         await _context.SaveChangesAsync();
         await _personalRecordService.DetectAndSavePersonalRecordsAsync(workout);
+        var unlockedAchievements = await _achievementService.EvaluateAndUnlockAchievementsAsync(userId, DateTime.UtcNow);
 
-        return WorkoutCompletionResult.Success();
+        return WorkoutCompletionResult.Success(unlockedAchievements.Select(userAchievement => userAchievement.AchievementId).ToList());
     }
 
     public async Task<bool> CancelWorkoutAsync(int workoutId, string userId)
@@ -345,8 +348,8 @@ public class ProgressiveOverloadSuggestion
     public string Recommendation { get; set; } = string.Empty;
 }
 
-public record WorkoutCompletionResult(bool Succeeded, string? ErrorMessage)
+public record WorkoutCompletionResult(bool Succeeded, string? ErrorMessage, IReadOnlyList<int> UnlockedAchievementIds)
 {
-    public static WorkoutCompletionResult Success() => new(true, null);
-    public static WorkoutCompletionResult Failure(string errorMessage) => new(false, errorMessage);
+    public static WorkoutCompletionResult Success(IReadOnlyList<int>? unlockedAchievementIds = null) => new(true, null, unlockedAchievementIds ?? Array.Empty<int>());
+    public static WorkoutCompletionResult Failure(string errorMessage) => new(false, errorMessage, Array.Empty<int>());
 }

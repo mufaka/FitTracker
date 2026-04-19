@@ -17,6 +17,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<WorkoutTemplate> WorkoutTemplates { get; set; }
     public DbSet<WorkoutTemplateExercise> WorkoutTemplateExercises { get; set; }
     public DbSet<PersonalRecord> PersonalRecords { get; set; }
+    public DbSet<Achievement> Achievements { get; set; }
+    public DbSet<UserAchievement> UserAchievements { get; set; }
+    public DbSet<BodyMeasurement> BodyMeasurements { get; set; }
+    public DbSet<ProgressPhoto> ProgressPhotos { get; set; }
     public DbSet<Set> Sets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -72,6 +76,107 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<PersonalRecord>()
             .Property(pr => pr.OneRepMax)
             .HasPrecision(10, 2);
+
+        // Configure Achievement
+        builder.Entity<Achievement>()
+            .HasIndex(achievement => achievement.Name)
+            .IsUnique();
+
+        builder.Entity<Achievement>()
+            .Property(achievement => achievement.Name)
+            .HasMaxLength(100);
+
+        builder.Entity<Achievement>()
+            .Property(achievement => achievement.Description)
+            .HasMaxLength(500);
+
+        builder.Entity<Achievement>()
+            .Property(achievement => achievement.Icon)
+            .HasMaxLength(20);
+
+        builder.Entity<Achievement>()
+            .Property(achievement => achievement.Criteria)
+            .HasMaxLength(100);
+
+        // Configure UserAchievement
+        builder.Entity<UserAchievement>()
+            .HasOne(userAchievement => userAchievement.User)
+            .WithMany(user => user.UserAchievements)
+            .HasForeignKey(userAchievement => userAchievement.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserAchievement>()
+            .HasOne(userAchievement => userAchievement.Achievement)
+            .WithMany(achievement => achievement.UserAchievements)
+            .HasForeignKey(userAchievement => userAchievement.AchievementId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserAchievement>()
+            .HasIndex(userAchievement => new { userAchievement.UserId, userAchievement.AchievementId })
+            .IsUnique();
+
+        builder.Entity<UserAchievement>()
+            .HasIndex(userAchievement => new { userAchievement.UserId, userAchievement.UnlockedDate });
+
+        // Configure BodyMeasurement
+        builder.Entity<BodyMeasurement>()
+            .HasOne(bm => bm.User)
+            .WithMany(u => u.BodyMeasurements)
+            .HasForeignKey(bm => bm.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<BodyMeasurement>()
+            .HasIndex(bm => new { bm.UserId, bm.Date });
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Weight)
+            .HasPrecision(10, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.BodyFatPercentage)
+            .HasPrecision(5, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Chest)
+            .HasPrecision(10, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Waist)
+            .HasPrecision(10, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Arms)
+            .HasPrecision(10, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Legs)
+            .HasPrecision(10, 2);
+
+        builder.Entity<BodyMeasurement>()
+            .Property(bm => bm.Notes)
+            .HasMaxLength(500);
+
+        // Configure ProgressPhoto
+        builder.Entity<ProgressPhoto>()
+            .HasOne(pp => pp.User)
+            .WithMany(u => u.ProgressPhotos)
+            .HasForeignKey(pp => pp.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ProgressPhoto>()
+            .HasIndex(pp => new { pp.UserId, pp.Date });
+
+        builder.Entity<ProgressPhoto>()
+            .Property(pp => pp.PhotoPath)
+            .HasMaxLength(260);
+
+        builder.Entity<ProgressPhoto>()
+            .Property(pp => pp.ContentType)
+            .HasMaxLength(100);
+
+        builder.Entity<ProgressPhoto>()
+            .Property(pp => pp.Notes)
+            .HasMaxLength(500);
 
         // Configure WorkoutTemplate
         builder.Entity<WorkoutTemplate>()

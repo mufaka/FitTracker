@@ -15,6 +15,7 @@ public class IndexModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAnalyticsService _analyticsService;
     private readonly ITemplateService _templateService;
+    private readonly IWorkoutSuggestionService _workoutSuggestionService;
     private readonly ILogger<IndexModel> _logger;
 
     public IndexModel(
@@ -22,12 +23,14 @@ public class IndexModel : PageModel
         UserManager<ApplicationUser> userManager,
         IAnalyticsService analyticsService,
         ITemplateService templateService,
+        IWorkoutSuggestionService workoutSuggestionService,
         ILogger<IndexModel> logger)
     {
         _context = context;
         _userManager = userManager;
         _analyticsService = analyticsService;
         _templateService = templateService;
+        _workoutSuggestionService = workoutSuggestionService;
         _logger = logger;
     }
 
@@ -37,6 +40,7 @@ public class IndexModel : PageModel
     public Workout? TodaysWorkout { get; set; }
     public DailySummary? TodaysSummary { get; set; }
     public List<WorkoutTemplate> ActiveTemplates { get; set; } = new();
+    public WorkoutSuggestionSummary WorkoutSuggestions { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -73,6 +77,7 @@ public class IndexModel : PageModel
         // Get today's summary
         TodaysSummary = await _analyticsService.GetDailySummaryAsync(userId, today);
         ActiveTemplates = await _templateService.GetActiveTemplatesAsync(userId, 3);
+        WorkoutSuggestions = await _workoutSuggestionService.GetSuggestionsAsync(userId);
     }
 
     private async Task<int> CalculateStreakAsync(string userId)

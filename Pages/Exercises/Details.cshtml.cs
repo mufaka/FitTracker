@@ -23,6 +23,7 @@ public class DetailsModel : PageModel
     public int UsageCount { get; set; }
     public DateTime? LastPerformed { get; set; }
     public Set? BestSet { get; set; }
+    public OneRepMaxEstimate BestSetOneRepMax { get; set; } = OneRepMaxEstimate.Empty;
     public List<PersonalRecord> PersonalRecords { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int id)
@@ -44,6 +45,9 @@ public class DetailsModel : PageModel
                 UsageCount = history.UsageCount;
                 LastPerformed = history.LastPerformed;
                 BestSet = history.BestSet;
+                BestSetOneRepMax = BestSet != null
+                    ? OneRepMaxCalculator.Calculate(BestSet.Weight ?? 0, BestSet.Reps ?? 0)
+                    : OneRepMaxEstimate.Empty;
                 PersonalRecords = await _personalRecordService.GetRecentRecordsForExerciseAsync(id, userId);
             }
         }

@@ -643,11 +643,6 @@
     background-color: rgb(239 68 68 / 0.1);
     color: var(--color-red-200);
   }
-
-  /* ASP.NET renders an empty <div> until a model error exists. */
-  &:empty {
-    display: none;
-  }
 }
 
 /* --------------------------------------------------------------------------

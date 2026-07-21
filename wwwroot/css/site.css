@@ -511,6 +511,17 @@
     box-shadow: var(--shadow-sm), 0 0 0 4px rgb(74 222 128 / 0.1);
   }
 
+  /* Native HTML5 constraint validation. `:user-invalid` only matches once the
+     field has actually been interacted with, so nothing looks broken on load. */
+  &:user-invalid {
+    border-color: var(--color-red-400);
+  }
+
+  &:user-invalid:focus {
+    border-color: var(--color-red-400);
+    box-shadow: var(--shadow-sm), 0 0 0 4px rgb(248 113 113 / 0.12);
+  }
+
   &:where(.dark, .dark *)::placeholder {
     color: var(--color-slate-500);
   }

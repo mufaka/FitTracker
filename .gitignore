@@ -71,7 +71,9 @@ ScaffoldingReadMe.txt
 
 # Node modules (for Tailwind CSS)
 node_modules/
-dist/
+# Anchored to the repo root: a bare `dist/` also matched wwwroot/lib/*/dist/,
+# which silently excluded vendored client libraries from the repo.
+/dist/
 
 # Tailwind CSS
 # wwwroot/css/site.css is the SOURCE and is tracked.

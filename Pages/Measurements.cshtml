@@ -1,4 +1,4 @@
-﻿@page
+@page
 @using System.Text.Json
 @model FitTracker.Pages.MeasurementsModel
 @{
@@ -201,7 +201,6 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const measurementLabels = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => m.Date.ToString("MMM dd"))));

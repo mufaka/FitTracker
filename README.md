@@ -113,7 +113,6 @@ FitTracker/
 │   ├── Idea.md            # Project concept and features
 │   ├── Implementation.md  # Implementation checklist
 │   ├── Progress.md        # Session progress summary
-│   ├── DatabaseSchema.md  # Database schema reference
 │   ├── TailwindGuidelines.md # Tailwind 4 conventions for this project
 │   ├── ManualTestChecklist.md # Manual MVP validation checklist
 │   └── UserGuide.md       # End-user guide for the MVP
@@ -148,8 +147,10 @@ FitTracker/
 - **Challenge** / **UserChallenge** - Goals measured over a window that starts
   when the user joins
 
-Note that `Specifications/DatabaseSchema.md` currently documents only the Phase 1
-entities and predates everything from Phase 2 onwards.
+The entity classes in `Models/` and the EF Core configuration in
+`Data/ApplicationDbContext.cs` are the source of truth for the schema, with
+`Migrations/` recording how it got there. There is no separate schema document to
+keep in step.
 
 ## Features
 

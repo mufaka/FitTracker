@@ -1,4 +1,4 @@
-@page
+﻿@page
 @using System.Text.Json
 @model FitTracker.Pages.Analytics.MonthlyModel
 @{
@@ -181,7 +181,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const monthlyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
         const monthlyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));

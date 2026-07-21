@@ -33,20 +33,50 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Tailwind source: compiled into wwwroot/css/output.css, never served. -->
+    <Content Remove="wwwroot\css\site.css" />
+    <None Include="wwwroot\css\site.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="FitTracker.Tests\**\*.cs" />
     <Content Remove="FitTracker.Tests\**\*" />
     <EmbeddedResource Remove="FitTracker.Tests\**\*" />
     <None Remove="FitTracker.Tests\**\*" />
   </ItemGroup>
 
-  <Target Name="NpmInstall" BeforeTargets="Build;Publish" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json') and !Exists('$(MSBuildProjectDirectory)\node_modules')">
+  <!--
+    Re-runs whenever package.json/package-lock.json is newer than the stamp, so a
+    dependency bump is picked up instead of being skipped because node_modules
+    happens to exist from an earlier install.
+  -->
+  <Target Name="NpmInstall" BeforeTargets="Build;Publish"
+          Inputs="$(MSBuildProjectDirectory)\package.json;$(MSBuildProjectDirectory)\package-lock.json"
+          Outputs="$(MSBuildProjectDirectory)\node_modules\.npm-install-stamp"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json')">
     <Message Importance="high" Text="Installing npm packages for Tailwind CSS..." />
     <Exec Command="&quot;$(NpmCommand)&quot; install" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Touch Files="$(MSBuildProjectDirectory)\node_modules\.npm-install-stamp" AlwaysCreate="true" />
   </Target>
 
   <Target Name="BuildTailwindCss" BeforeTargets="Build;Publish" DependsOnTargets="NpmInstall" Condition="'$(DesignTimeBuild)' != 'true' and '$(SkipTailwindBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\package.json')">
     <Message Importance="high" Text="Building Tailwind CSS..." />
     <Exec Command="&quot;$(NpmCommand)&quot; run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!--
+    Client libraries are served from wwwroot/lib rather than a CDN. The copies in
+    wwwroot/lib are committed so a clean clone runs without npm; this target
+    refreshes them from node_modules whenever it is present, which makes an
+    upgrade a matter of bumping package.json and rebuilding.
+  -->
+  <Target Name="CopyClientLibs" BeforeTargets="Build;Publish" DependsOnTargets="NpmInstall" Condition="'$(DesignTimeBuild)' != 'true' and Exists('$(MSBuildProjectDirectory)\node_modules')">
+    <ItemGroup>
+      <ClientLib Include="$(MSBuildProjectDirectory)\node_modules\alpinejs\dist\cdn.min.js" TargetPath="alpinejs\alpine.min.js" />
+      <ClientLib Include="$(MSBuildProjectDirectory)\node_modules\htmx.org\dist\htmx.min.js" TargetPath="htmx\htmx.min.js" />
+      <ClientLib Include="$(MSBuildProjectDirectory)\node_modules\chart.js\dist\chart.umd.min.js" TargetPath="chartjs\chart.umd.min.js" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ClientLib)" DestinationFiles="@(ClientLib->'$(MSBuildProjectDirectory)\wwwroot\lib\%(TargetPath)')" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

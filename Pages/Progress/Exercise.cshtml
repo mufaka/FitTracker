@@ -1,4 +1,4 @@
-@page "{id:int}"
+﻿@page "{id:int}"
 @using System.Text.Json
 @model FitTracker.Pages.Progress.ExerciseModel
 @{
@@ -169,7 +169,7 @@
 @section Scripts {
     @if (Model.Summary != null && Model.Summary.ProgressPoints.Any())
     {
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
         <script>
             const exerciseLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.Label)));
             const exerciseWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.BestWeight)));

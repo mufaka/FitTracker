@@ -92,8 +92,9 @@ FitTracker/
 ├── Areas/                 # Identity pages (auto-generated)
 │   └── Identity/
 ├── wwwroot/              # Static files
-│   ├── css/
-│   └── js/
+│   ├── css/              # site.css (Tailwind source) -> output.css (generated)
+│   ├── js/
+│   └── lib/              # Client libs served locally (alpinejs, htmx, chartjs)
 ├── Specifications/        # Project documentation
 │   ├── Idea.md           # Project concept and features
 │   ├── Implementation.md # Implementation checklist
@@ -103,7 +104,6 @@ FitTracker/
 │   └── UserGuide.md      # End-user guide for the MVP
 ├── appsettings.json      # Configuration
 ├── Program.cs            # Application entry point
-├── tailwind.config.js    # Tailwind CSS configuration
 └── package.json          # Node.js dependencies
 ```
 
@@ -172,12 +172,27 @@ dotnet ef migrations remove
 
 ### Tailwind CSS
 
-The CSS source is in `wwwroot/css/site.css` and outputs to `wwwroot/css/output.css`.
+Tailwind 4 is configured entirely in CSS — there is no `tailwind.config.js`.
+The source is `wwwroot/css/site.css` (tracked) and it compiles to
+`wwwroot/css/output.css` (generated, git-ignored). The build runs automatically
+on `dotnet build` / `dotnet publish`.
 
 Run the watcher during development:
 ```bash
 npm run watch:css
 ```
+
+`site.css` holds the theme tokens (`@theme`), the class-based dark mode variant,
+and the `ui`-style component classes defined with `@utility`. When a look recurs
+across pages, add a `@utility` there rather than repeating utility strings in
+markup — see `Specifications/TailwindGuidelines.md`.
+
+### Client libraries
+
+Alpine.js, htmx, and Chart.js are served from `wwwroot/lib/` rather than a CDN.
+Versions are pinned in `package.json`; the `CopyClientLibs` MSBuild target
+refreshes `wwwroot/lib/` from `node_modules` on each build. To upgrade one, bump
+`package.json`, run `npm install`, and rebuild.
 
 ### Running Tests
 

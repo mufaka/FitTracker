@@ -1,4 +1,4 @@
-@page
+﻿@page
 @using System.Text.Json
 @model FitTracker.Pages.Analytics.IndexModel
 @{
@@ -218,7 +218,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const volumeTrendLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Label)));
         const volumeTrendValues = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Volume)));

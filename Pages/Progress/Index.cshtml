@@ -1,4 +1,4 @@
-@page
+﻿@page
 @using System.Text.Json
 @model FitTracker.Pages.Progress.IndexModel
 @{
@@ -176,7 +176,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const overallLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Label)));
         const overallVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Volume)));

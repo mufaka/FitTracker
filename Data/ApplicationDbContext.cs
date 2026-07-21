@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PersonalRecord> PersonalRecords { get; set; }
     public DbSet<Achievement> Achievements { get; set; }
     public DbSet<UserAchievement> UserAchievements { get; set; }
+    public DbSet<Challenge> Challenges { get; set; }
+    public DbSet<UserChallenge> UserChallenges { get; set; }
     public DbSet<BodyMeasurement> BodyMeasurements { get; set; }
     public DbSet<ProgressPhoto> ProgressPhotos { get; set; }
     public DbSet<Set> Sets { get; set; }
@@ -117,6 +119,52 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<UserAchievement>()
             .HasIndex(userAchievement => new { userAchievement.UserId, userAchievement.UnlockedDate });
+
+        // Configure Challenge
+        builder.Entity<Challenge>()
+            .HasIndex(challenge => challenge.Name)
+            .IsUnique();
+
+        builder.Entity<Challenge>()
+            .Property(challenge => challenge.Name)
+            .HasMaxLength(100);
+
+        builder.Entity<Challenge>()
+            .Property(challenge => challenge.Description)
+            .HasMaxLength(500);
+
+        builder.Entity<Challenge>()
+            .Property(challenge => challenge.Icon)
+            .HasMaxLength(20);
+
+        builder.Entity<Challenge>()
+            .Property(challenge => challenge.GoalType)
+            .HasMaxLength(50);
+
+        builder.Entity<Challenge>()
+            .Property(challenge => challenge.Goal)
+            .HasPrecision(18, 2);
+
+        // Configure UserChallenge
+        builder.Entity<UserChallenge>()
+            .HasOne(userChallenge => userChallenge.User)
+            .WithMany(user => user.UserChallenges)
+            .HasForeignKey(userChallenge => userChallenge.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserChallenge>()
+            .HasOne(userChallenge => userChallenge.Challenge)
+            .WithMany(challenge => challenge.UserChallenges)
+            .HasForeignKey(userChallenge => userChallenge.ChallengeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A user is only ever in a challenge once; re-joining reuses the row.
+        builder.Entity<UserChallenge>()
+            .HasIndex(userChallenge => new { userChallenge.UserId, userChallenge.ChallengeId })
+            .IsUnique();
+
+        builder.Entity<UserChallenge>()
+            .HasIndex(userChallenge => new { userChallenge.UserId, userChallenge.StartedDate });
 
         // Configure BodyMeasurement
         builder.Entity<BodyMeasurement>()

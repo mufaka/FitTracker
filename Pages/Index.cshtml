@@ -105,6 +105,40 @@
                     ? string.Join(' ', Model.WorkoutSuggestions.FocusMuscleGroups)
                     : null;
 
+                @if (Model.ActiveChallenges.Any())
+                {
+                    <section class="surface-card">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="page-eyebrow">Challenges</p>
+                                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Clock is running</h2>
+                            </div>
+                            <a asp-page="/Challenges/Index" class="btn btn-secondary">View all</a>
+                        </div>
+
+                        <div class="mt-5 space-y-4">
+                            @foreach (var challenge in Model.ActiveChallenges)
+                            {
+                                <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">@challenge.Icon</span>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-semibold text-slate-950 dark:text-white">@challenge.Name</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">@challenge.ProgressLabel</p>
+                                        </div>
+                                        <span class="chip @(challenge.DaysRemaining <= 3 ? "chip-primary" : "")">
+                                            @challenge.DaysRemaining @(challenge.DaysRemaining == 1 ? "day" : "days")
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                        <div class="h-full rounded-full bg-primary-500 transition-all" style="width: @challenge.ProgressPercentage%"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+
                 <section class="surface-card">
                     <div class="flex items-center justify-between gap-4">
                         <div>

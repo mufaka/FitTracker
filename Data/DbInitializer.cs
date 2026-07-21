@@ -109,6 +109,50 @@ public static class DbInitializer
             changesMade = true;
         }
 
+        if (!await context.Challenges.AnyAsync())
+        {
+            // No dates here on purpose: the window starts when a user joins, so
+            // these stay valid however long after seeding they are picked up.
+            await context.Challenges.AddRangeAsync(
+                new Challenge
+                {
+                    Name = "30-Day Workout Challenge",
+                    Description = "Complete 20 workouts within 30 days of joining.",
+                    Icon = "📅",
+                    GoalType = ChallengeGoalTypes.CompletedWorkouts,
+                    Goal = 20m,
+                    DurationDays = 30
+                },
+                new Challenge
+                {
+                    Name = "Consistency Sprint",
+                    Description = "Complete 6 workouts in a single week.",
+                    Icon = "⚡",
+                    GoalType = ChallengeGoalTypes.CompletedWorkouts,
+                    Goal = 6m,
+                    DurationDays = 7
+                },
+                new Challenge
+                {
+                    Name = "Volume Challenge",
+                    Description = "Move 100,000 of total volume within 30 days.",
+                    Icon = "🏋️",
+                    GoalType = ChallengeGoalTypes.TotalVolume,
+                    Goal = 100000m,
+                    DurationDays = 30
+                },
+                new Challenge
+                {
+                    Name = "Set Grinder",
+                    Description = "Log 200 sets within 30 days.",
+                    Icon = "🔁",
+                    GoalType = ChallengeGoalTypes.TotalSets,
+                    Goal = 200m,
+                    DurationDays = 30
+                });
+            changesMade = true;
+        }
+
         if (changesMade)
         {
             await context.SaveChangesAsync();

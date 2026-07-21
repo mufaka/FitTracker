@@ -24,17 +24,23 @@ public class WorkoutService : IWorkoutService
     private readonly ApplicationDbContext _context;
     private readonly IPersonalRecordService _personalRecordService;
     private readonly IAchievementService _achievementService;
+    private readonly IChallengeService _challengeService;
 
     public WorkoutService(ApplicationDbContext context)
-        : this(context, new PersonalRecordService(context), new AchievementService(context))
+        : this(context, new PersonalRecordService(context), new AchievementService(context), new ChallengeService(context))
     {
     }
 
-    public WorkoutService(ApplicationDbContext context, IPersonalRecordService personalRecordService, IAchievementService achievementService)
+    public WorkoutService(
+        ApplicationDbContext context,
+        IPersonalRecordService personalRecordService,
+        IAchievementService achievementService,
+        IChallengeService challengeService)
     {
         _context = context;
         _personalRecordService = personalRecordService;
         _achievementService = achievementService;
+        _challengeService = challengeService;
     }
 
     public async Task<Workout?> GetWorkoutAsync(int workoutId, string userId)
@@ -211,6 +217,7 @@ public class WorkoutService : IWorkoutService
         await _context.SaveChangesAsync();
         await _personalRecordService.DetectAndSavePersonalRecordsAsync(workout);
         var unlockedAchievements = await _achievementService.EvaluateAndUnlockAchievementsAsync(userId, DateTime.UtcNow);
+        await _challengeService.EvaluateChallengesAsync(userId, DateTime.UtcNow);
 
         return WorkoutCompletionResult.Success(unlockedAchievements.Select(userAchievement => userAchievement.AchievementId).ToList());
     }

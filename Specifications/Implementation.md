@@ -386,7 +386,7 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
   - [x] Id, Name, Description, Icon, Criteria
 - [x] Create `UserAchievement` model
   - [x] Id, UserId, AchievementId, UnlockedDate
-- [ ] Add database migration
+- [x] Add database migration
 - [x] Define achievement criteria
   - [x] First workout
   - [x] 10 workouts
@@ -404,21 +404,39 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### Challenges
 
-- [ ] Create `Challenge` model
-  - [ ] Id, Name, Description, StartDate, EndDate, Goal, GoalType
-- [ ] Create `UserChallenge` model
-  - [ ] Id, UserId, ChallengeId, Progress, CompletedDate
-- [ ] Add database migration
-- [ ] Create Challenges page (`/Challenges`)
-  - [ ] List available challenges
-  - [ ] Join challenge
-  - [ ] Track progress
-- [ ] Implement challenge types
-  - [ ] 30-day workout challenge
+Two deliberate changes from the original shape, both to match the Achievements
+feature that this mirrors:
+
+- The window is per user, not per challenge. `Challenge` carries `DurationDays`
+  and `UserChallenge` carries `StartedDate`, instead of fixed `StartDate`/
+  `EndDate` on the definition. Seeded challenges with absolute dates would ship
+  already expired, and there is no admin UI to create dated ones.
+- Progress is derived, not stored. Achievements recompute from workout data on
+  read and persist only the unlock; challenges do the same and persist only the
+  join and the completion. A stored counter would have to be updated on every
+  write path and would silently drift when a past workout is edited or deleted.
+
+- [x] Create `Challenge` model
+  - [x] Id, Name, Description, Icon, GoalType, Goal, DurationDays
+- [x] Create `UserChallenge` model
+  - [x] Id, UserId, ChallengeId, StartedDate, CompletedDate
+- [x] Add database migration
+- [x] Create Challenges page (`/Challenges`)
+  - [x] List available challenges
+  - [x] Join challenge (re-joining restarts the window)
+  - [x] Track progress
+- [x] Implement challenge types
+  - [x] 30-day workout challenge
   - [ ] Progressive overload challenge
-  - [ ] Volume challenge
-- [ ] Display active challenges on dashboard
-- [ ] Style with Tailwind CSS
+  - [x] Volume challenge
+  - [x] Total sets challenge
+- [x] Display active challenges on dashboard
+- [x] Style with Tailwind CSS
+
+Progressive overload is still open because it has no agreed definition. The
+other types map onto metrics that already exist; this one needs a decision
+first — most cheaply "each week's volume beats the previous week's, N weeks
+running", which `AnalyticsService` already has the weekly figures for.
 
 ### Mobile Optimizations
 
@@ -455,7 +473,7 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ### AI-Based Workout Suggestions
 
-- [ ] Implement ML model or rule-based AI
+- [ ] Choose an LLM strategy. Probably Ollama Cloud.
 - [ ] Analyze workout history patterns
 - [ ] Suggest optimal rest days
 - [ ] Suggest exercises based on:
@@ -510,42 +528,6 @@ Reference checklist: `Specifications/ManualTestChecklist.md`
 
 ---
 
-## Deployment
-
-### Production Setup
-- [ ] Choose hosting provider
-- [ ] Set up production database
-- [ ] Configure production environment variables
-- [ ] Set up SSL certificate
-- [ ] Configure CORS policies
-- [ ] Set up email service (if needed)
-- [ ] Configure logging and monitoring
-- [ ] Set up automated backups
-
-### CI/CD Pipeline
-- [ ] Set up GitHub Actions or Azure DevOps
-- [ ] Configure automated builds
-- [ ] Configure automated tests
-- [ ] Set up automated deployment
-- [ ] Configure rollback procedures
-
-### Launch
-- [ ] Deploy to production
-- [ ] Smoke test production environment
-- [ ] Monitor for errors
-- [ ] Announce launch
-- [ ] Gather initial user feedback
-
----
-
-## Post-Launch
-
-### Monitoring & Maintenance
-- [ ] Monitor application performance
-- [ ] Monitor error logs
-- [ ] Track success metrics
-- [ ] Collect user feedback
-- [ ] Plan future enhancements based on feedback
 
 ### Future Considerations
 - [ ] Review "Features to Consider" from Idea document

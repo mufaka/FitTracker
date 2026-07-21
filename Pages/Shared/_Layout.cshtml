@@ -98,6 +98,10 @@
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8l1.902 3.854 4.252.618-3.077 2.999.726 4.229L12 17.75 8.197 19.7l.726-4.229-3.077-2.999 4.252-.618L12 8z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4h8"></path></svg>
                             <span>Achievements</span>
                         </a>
+                        <a asp-page="/Challenges/Index" class="@NavClasses("/Challenges")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                            <span>Challenges</span>
+                        </a>
                         <a asp-page="/Analytics/Index" class="@NavClasses("/Analytics")">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             <span>Analytics</span>
@@ -180,6 +184,7 @@
                             <a asp-page="/PRs/Index" class="@NavClasses("/PRs")" @@click="sidebarOpen = false">PRs</a>
                             <a asp-page="/Progress/Index" class="@NavClasses("/Progress")" @@click="sidebarOpen = false">Progress</a>
                             <a asp-page="/Achievements/Index" class="@NavClasses("/Achievements")" @@click="sidebarOpen = false">Achievements</a>
+                            <a asp-page="/Challenges/Index" class="@NavClasses("/Challenges")" @@click="sidebarOpen = false">Challenges</a>
                             <a asp-page="/Analytics/Index" class="@NavClasses("/Analytics")" @@click="sidebarOpen = false">Analytics</a>
                             <a asp-page="/Export" class="@NavClasses("/Export")" @@click="sidebarOpen = false">Export</a>
                             <a asp-area="Identity" asp-page="/Account/Manage/Index" class="@NavClasses("/Identity/Account/Manage")" @@click="sidebarOpen = false">Profile</a>

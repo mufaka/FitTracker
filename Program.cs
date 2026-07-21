@@ -45,6 +45,7 @@ builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<IPersonalRecordService, PersonalRecordService>();
 builder.Services.AddScoped<IAchievementService, AchievementService>();
+builder.Services.AddScoped<IChallengeService, ChallengeService>();
 builder.Services.AddScoped<IProgressPhotoService, ProgressPhotoService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IWorkoutSuggestionService, WorkoutSuggestionService>();

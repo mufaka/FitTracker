@@ -16,6 +16,7 @@ public class IndexModel : PageModel
     private readonly IAnalyticsService _analyticsService;
     private readonly ITemplateService _templateService;
     private readonly IWorkoutSuggestionService _workoutSuggestionService;
+    private readonly IChallengeService _challengeService;
     private readonly ILogger<IndexModel> _logger;
 
     public IndexModel(
@@ -24,6 +25,7 @@ public class IndexModel : PageModel
         IAnalyticsService analyticsService,
         ITemplateService templateService,
         IWorkoutSuggestionService workoutSuggestionService,
+        IChallengeService challengeService,
         ILogger<IndexModel> logger)
     {
         _context = context;
@@ -31,6 +33,7 @@ public class IndexModel : PageModel
         _analyticsService = analyticsService;
         _templateService = templateService;
         _workoutSuggestionService = workoutSuggestionService;
+        _challengeService = challengeService;
         _logger = logger;
     }
 
@@ -41,6 +44,7 @@ public class IndexModel : PageModel
     public DailySummary? TodaysSummary { get; set; }
     public List<WorkoutTemplate> ActiveTemplates { get; set; } = new();
     public WorkoutSuggestionSummary WorkoutSuggestions { get; set; } = new();
+    public List<ChallengeProgressItem> ActiveChallenges { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -78,6 +82,7 @@ public class IndexModel : PageModel
         TodaysSummary = await _analyticsService.GetDailySummaryAsync(userId, today);
         ActiveTemplates = await _templateService.GetActiveTemplatesAsync(userId, 3);
         WorkoutSuggestions = await _workoutSuggestionService.GetSuggestionsAsync(userId);
+        ActiveChallenges = await _challengeService.GetActiveChallengesAsync(userId);
     }
 
     private async Task<int> CalculateStreakAsync(string userId)

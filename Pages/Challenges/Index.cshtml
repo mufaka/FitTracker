@@ -1,0 +1,181 @@
+@page "/Challenges"
+@model FitTracker.Pages.Challenges.IndexModel
+@{
+    ViewData["Title"] = "Challenges";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Challenges</p>
+                <h1 class="page-title">Give consistency a deadline.</h1>
+                <p class="page-description">Achievements reward everything you have ever logged. A challenge only counts what you do inside its window, which starts the day you join.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Index" class="btn btn-secondary">Dashboard</a>
+                <a asp-page="/Achievements/Index" class="btn btn-secondary">Achievements</a>
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Start workout</a>
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="status-banner" role="status">@Model.StatusMessage</div>
+    }
+
+    <section class="grid gap-4 md:grid-cols-3">
+        <div class="metric-card">
+            <p class="metric-label">Active</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@Model.Summary.ActiveCount</p>
+            <p class="metric-meta">Windows still open</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Completed</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.CompletedCount</p>
+            <p class="metric-meta">Goals reached in time</p>
+        </div>
+        <div class="metric-card">
+            <p class="metric-label">Available</p>
+            <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.AvailableCount</p>
+            <p class="metric-meta">Not started yet</p>
+        </div>
+    </section>
+
+    <div class="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">In progress</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Active challenges</h2>
+                </div>
+                <span class="chip chip-primary">@Model.Summary.ActiveCount running</span>
+            </div>
+
+            @if (Model.Summary.ActiveChallenges.Any())
+            {
+                <div class="space-y-4">
+                    @foreach (var challenge in Model.Summary.ActiveChallenges)
+                    {
+                        <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-3xl dark:bg-slate-800">@challenge.Icon</div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@challenge.Name</h3>
+                                        <span class="chip">@challenge.ProgressPercentage%</span>
+                                        <span class="chip @(challenge.DaysRemaining <= 3 ? "chip-primary" : "")">
+                                            @challenge.DaysRemaining @(challenge.DaysRemaining == 1 ? "day" : "days") left
+                                        </span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@challenge.Description</p>
+                                    <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                        <div class="h-full rounded-full bg-primary-500 transition-all" style="width: @challenge.ProgressPercentage%"></div>
+                                    </div>
+                                    <p class="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">@challenge.ProgressLabel</p>
+                                    @if (challenge.EndDate.HasValue)
+                                    {
+                                        <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">Window closes @challenge.EndDate.Value.ToString("MMM dd, yyyy")</p>
+                                    }
+                                    <form method="post" asp-page-handler="Leave" asp-route-id="@challenge.ChallengeId" class="mt-4">
+                                        <button type="submit" class="btn btn-secondary">Leave challenge</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No active challenges</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Join one from the list to start a window and give your next few weeks a target.</p>
+                </div>
+            }
+        </section>
+
+        <div class="space-y-8">
+            <section class="surface-card">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">Available</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Start something</h2>
+                    </div>
+                    <span class="chip">@Model.Summary.AvailableCount ready</span>
+                </div>
+
+                @if (Model.Summary.AvailableChallenges.Any())
+                {
+                    <div class="space-y-4">
+                        @foreach (var challenge in Model.Summary.AvailableChallenges)
+                        {
+                            <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-3xl dark:bg-slate-800">@challenge.Icon</div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@challenge.Name</h3>
+                                            <span class="chip">@challenge.DurationDays days</span>
+                                        </div>
+                                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@challenge.Description</p>
+                                        <p class="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Goal: @challenge.GoalLabel</p>
+                                        <form method="post" asp-page-handler="Join" asp-route-id="@challenge.ChallengeId" class="mt-4">
+                                            <button type="submit" class="btn btn-primary">Join challenge</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">You have joined them all</h3>
+                        <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Every available challenge is already underway or finished.</p>
+                    </div>
+                }
+            </section>
+
+            @if (Model.Summary.CompletedChallenges.Any() || Model.Summary.ExpiredChallenges.Any())
+            {
+                <section class="surface-card">
+                    <div class="mb-6">
+                        <p class="page-eyebrow">History</p>
+                        <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Finished attempts</h2>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach (var challenge in Model.Summary.CompletedChallenges)
+                        {
+                            <div class="flex items-center gap-4 rounded-[1.25rem] border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                                <span class="text-2xl">@challenge.Icon</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold text-slate-950 dark:text-white">@challenge.Name</p>
+                                    <p class="text-sm text-slate-600 dark:text-slate-300">Completed @challenge.CompletedDate!.Value.ToString("MMM dd, yyyy")</p>
+                                </div>
+                                <span class="chip chip-success">Done</span>
+                            </div>
+                        }
+
+                        @foreach (var challenge in Model.Summary.ExpiredChallenges)
+                        {
+                            <div class="flex items-center gap-4 rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+                                <span class="text-2xl opacity-65">@challenge.Icon</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold text-slate-950 dark:text-white">@challenge.Name</p>
+                                    <p class="text-sm text-slate-600 dark:text-slate-300">Window closed at @challenge.ProgressLabel</p>
+                                </div>
+                                <form method="post" asp-page-handler="Join" asp-route-id="@challenge.ChallengeId">
+                                    <button type="submit" class="btn btn-secondary">Try again</button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    </div>
+</div>

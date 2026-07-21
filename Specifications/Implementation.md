@@ -484,21 +484,58 @@ Swipe gestures and haptics are deliberately not done:
   not support it at all, so the work would ship Android-only feedback for an app
   used mostly on phones.
 
-The PWA install prompt is blocked on the PWA Support section below — there is
-nothing to install until a manifest and service worker exist.
+The PWA install prompt is blocked on the PWA Support section below. The app is
+now installable from the browser menu, but the custom in-app prompt needs a
+service worker, which is deferred there.
 
 ### PWA Support
 
-- [ ] Create `manifest.json`
-  - [ ] App name, icons, colors
-  - [ ] Display mode (standalone)
-  - [ ] Start URL
+- [x] Create `manifest.json`
+  - [x] App name, icons, colors
+  - [x] Display mode (standalone)
+  - [x] Start URL
 - [ ] Create service worker
   - [ ] Cache static assets
   - [ ] Offline fallback page
 - [ ] Add installable app prompt
 - [ ] Test PWA installation
-- [ ] Add app icons (various sizes)
+- [x] Add app icons (various sizes)
+
+Split deliberately: the installable shell is done, the service worker is not.
+
+Chrome dropped the service worker requirement for installing from the browser
+menu in version 108 on mobile and 112 on desktop, so a manifest and icons alone
+give a real home screen install with a standalone window. `beforeinstallprompt`
+— a custom in-app install button — still requires a service worker with a
+`fetch()` handler, which is why that item stays open.
+
+Icons are generated from the same lightning bolt already inline in
+`_Layout.cshtml`, at 192 and 512 in both `any` and `maskable` purposes, with the
+maskable pair full-bleed and the glyph kept inside the 80% safe circle so
+Android's mask cannot clip it. iOS ignores manifest icons for the home screen,
+so there is a separate `apple-touch-icon`. The manifest can only carry one
+`theme_color`, so the `theme-color` meta tag is updated alongside the existing
+dark mode toggle to keep the installed app's status bar in step.
+
+Verified programmatically: the manifest parses and carries every required field,
+the declared icon sizes match the files' real dimensions, and all assets serve
+with correct MIME types. Installing on a physical device is still worth doing
+before checking off "Test PWA installation" — note that installability needs
+HTTPS in production, which the nginx/caddy setup already provides; localhost is
+exempt for local testing.
+
+The service worker is deferred rather than forgotten. On an authenticated,
+server-rendered app the risk is concrete: caching personalised HTML could serve
+one user's dashboard to another on a shared device, and a faulty service worker
+persists in browsers and is hard to recall, so it needs a deliberate kill switch
+before it ships. The payoff is an offline page for an app that cannot function
+offline anyway.
+
+Offline workout logging — the feature that would actually justify a service
+worker — is a much larger change and is not in this section. It needs a JSON API
+(the app currently has none, every mutation is a Razor Pages form post),
+IndexedDB, a sync queue and conflict resolution. Worth its own decision rather
+than a checkbox.
 
 ### Advanced 1RM Tracking
 

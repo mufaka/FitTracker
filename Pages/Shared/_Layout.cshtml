@@ -19,12 +19,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f1f5f9" />
+    <link rel="manifest" href="~/manifest.json" />
+    @* iOS takes its home screen icon from here rather than the manifest. *@
+    <link rel="apple-touch-icon" href="~/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="FitTracker" />
     <title>@ViewData["Title"] - FitTracker</title>
     <script>
         (() => {
             const darkMode = localStorage.getItem('darkMode') === 'true';
             document.documentElement.classList.toggle('dark', darkMode);
             document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
+            // The manifest carries a single theme colour, so the installed app's
+            // status bar is kept in step with the chosen theme here instead.
+            document.querySelector('meta[name="theme-color"]')
+                ?.setAttribute('content', darkMode ? '#020617' : '#f1f5f9');
         })();
     </script>
     <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
@@ -265,6 +274,8 @@
                 applyTheme() {
                     document.documentElement.classList.toggle('dark', this.darkMode);
                     document.documentElement.style.colorScheme = this.darkMode ? 'dark' : 'light';
+                    document.querySelector('meta[name="theme-color"]')
+                        ?.setAttribute('content', this.darkMode ? '#020617' : '#f1f5f9');
                 }
             }
         }

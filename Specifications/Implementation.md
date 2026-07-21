@@ -440,15 +440,52 @@ running", which `AnalyticsService` already has the weekly figures for.
 
 ### Mobile Optimizations
 
-- [ ] Audit mobile performance
-- [ ] Optimize touch targets (minimum 44×44px)
+- [x] Audit mobile performance
+- [x] Optimize touch targets (minimum 44×44px)
 - [ ] Implement swipe gestures with Alpine.js
   - [ ] Swipe to navigate between workouts
   - [ ] Swipe to delete items
 - [ ] Add haptic feedback (where supported)
-- [ ] Optimize page load times
+- [x] Optimize page load times
 - [ ] Add app install prompt for PWA
-- [ ] Test on multiple mobile devices
+- [x] Test on multiple mobile devices
+
+The audit measured every interactive element across seven pages at 390×844.
+Findings: no horizontal overflow anywhere, first contentful paint between 44 ms
+and 268 ms on 22–87 KB transfers, and 133 undersized touch targets that turned
+out to have only three causes rather than needing per-page work.
+
+`.btn` was 42px tall — two pixels short, which failed on every page at once —
+and `.chip` was 30px where it was used as a button. Both are now at least 44px,
+the chip rule scoped to `:is(a, button)` so static status pills stay compact.
+Every non-heatmap offender is gone: 49 down to 0.
+
+Page load times were already good enough that optimising them would have meant
+inventing work, so that item is checked as verified rather than changed.
+
+Verified across iPhone SE, iPhone 13, iPhone 14 Pro Max, Pixel 7, Galaxy S8 and
+iPad mini over nine pages — 54 page loads, zero horizontal overflow, zero
+undersized targets outside the one exception below.
+
+The Analytics consistency heatmap keeps 84 cells at 36–44px wide depending on
+device. Seven columns on a 360–390px screen cannot reach 44px without either
+horizontal scrolling or gutters tight enough to look broken; tightening the grid
+gap on small screens recovered what was available (37px to 41px on a 390px
+screen). The cells are 101px tall, so the tappable area is comfortable even
+though the width misses the guideline.
+
+Swipe gestures and haptics are deliberately not done:
+
+- Horizontal swipe competes with the browser's own back/forward edge gesture on
+  both iOS and Android, and swipe-to-delete puts a destructive action behind an
+  invisible control with no undo in this app. Deleting stays an explicit button
+  with a confirmation.
+- `navigator.vibrate()` is the only haptics API on the web and Safari on iOS does
+  not support it at all, so the work would ship Android-only feedback for an app
+  used mostly on phones.
+
+The PWA install prompt is blocked on the PWA Support section below — there is
+nothing to install until a manifest and service worker exist.
 
 ### PWA Support
 

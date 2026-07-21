@@ -397,6 +397,9 @@
   gap: calc(var(--spacing) * 2);
   border-radius: var(--radius-2xl);
   border: 1px solid transparent;
+  /* 44px, the minimum comfortable touch target. Padding alone left buttons at
+     42px, which failed the check on every page at once. */
+  min-height: calc(var(--spacing) * 11);
   padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 4);
   font-size: var(--text-sm);
   line-height: var(--text-sm--line-height);
@@ -586,6 +589,12 @@
 
   &:where(.dark, .dark *) {
     color: var(--color-slate-300);
+  }
+
+  /* Chips are usually static status pills, which should stay compact. The ones
+     that are actually tappable get the full touch target instead. */
+  &:is(a, button) {
+    min-height: calc(var(--spacing) * 11);
   }
 }
 

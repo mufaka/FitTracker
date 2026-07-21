@@ -159,7 +159,9 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-7 gap-2">
+        @* Tighter gutters on narrow screens buy back width for the day cells,
+           which are squeezed by having to fit seven columns. *@
+        <div class="grid grid-cols-7 gap-1 sm:gap-2">
             @foreach (var cell in Model.Summary.ConsistencyHeatmap)
             {
                 var heatmapClasses = cell.WorkoutCount switch

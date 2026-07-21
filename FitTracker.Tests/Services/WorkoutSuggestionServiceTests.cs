@@ -20,12 +20,19 @@ public class WorkoutSuggestionServiceTests
         var barbellRow = CreateExercise("Barbell Row", "Strength", "Barbell", "Back");
         var latPulldown = CreateExercise("Lat Pulldown", "Strength", "Cable", "Back");
 
+        // The service scores against a window measured back from UtcNow, so these
+        // have to be relative dates. Fixed dates silently drop out of the window
+        // as time passes, leaving the service with no history to reason about.
+        // -10 sits inside the 28-day window but outside the 7-day "performed
+        // recently" cutoff; -5 and -2 sit inside both.
+        var today = DateTime.UtcNow.Date;
+
         context.Users.Add(user);
         context.Exercises.AddRange(benchPress, inclinePress, squat, barbellRow, latPulldown);
         context.Workouts.AddRange(
-            CreateWorkout(user.Id, new DateTime(2026, 4, 10), benchPress, inclinePress),
-            CreateWorkout(user.Id, new DateTime(2026, 4, 15), squat),
-            CreateWorkout(user.Id, new DateTime(2026, 4, 18), benchPress));
+            CreateWorkout(user.Id, today.AddDays(-10), benchPress, inclinePress),
+            CreateWorkout(user.Id, today.AddDays(-5), squat),
+            CreateWorkout(user.Id, today.AddDays(-2), benchPress));
         context.WorkoutTemplates.AddRange(
             CreateTemplate(user.Id, "Pull Day", barbellRow, latPulldown),
             CreateTemplate(user.Id, "Push Day", benchPress, inclinePress));
@@ -35,7 +42,12 @@ public class WorkoutSuggestionServiceTests
         var service = new WorkoutSuggestionService(context);
         var suggestions = await service.GetSuggestionsAsync(user.Id, 28);
 
+        // Back was never trained and Chest was trained the most, so the focus has
+        // to be driven by usage. Without this the assertions below also hold when
+        // the service sees no history at all and falls back to alphabetical order,
+        // which is how this test previously kept passing while it was rotting.
         Assert.Contains("Back", suggestions.FocusMuscleGroups);
+        Assert.DoesNotContain("Chest", suggestions.FocusMuscleGroups);
         Assert.NotNull(suggestions.TemplateSuggestion);
         Assert.Equal("Pull Day", suggestions.TemplateSuggestion!.Name);
         Assert.Contains(suggestions.SuggestedExercises, exercise => exercise.Name == "Barbell Row");

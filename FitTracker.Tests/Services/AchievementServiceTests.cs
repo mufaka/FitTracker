@@ -81,6 +81,7 @@ public class AchievementServiceTests
             new Achievement { Name = "10 Workouts", Description = "", Icon = "🔥", Criteria = $"{AchievementCriteria.CompletedWorkouts}:10" },
             new Achievement { Name = "100 Total Sets", Description = "", Icon = "💯", Criteria = $"{AchievementCriteria.TotalSets}:100" });
 
+        // Two completed workouts holding three and two sets: 2 workouts, 5 sets.
         context.Workouts.AddRange(
             CreateWorkout(user.Id, exercise, DateTime.UtcNow.AddDays(-2), 3),
             CreateWorkout(user.Id, exercise, DateTime.UtcNow.AddDays(-1), 2));
@@ -91,8 +92,8 @@ public class AchievementServiceTests
         var summary = await service.GetAchievementOverviewAsync(user.Id);
 
         Assert.Equal(2, summary.LockedCount);
-        Assert.Contains(summary.LockedAchievements, item => item.Name == "10 Workouts" && item.ProgressLabel.Contains("5 / 10"));
-        Assert.Contains(summary.LockedAchievements, item => item.Name == "100 Total Sets" && item.ProgressLabel.Contains("5 / 100"));
+        Assert.Contains(summary.LockedAchievements, item => item.Name == "10 Workouts" && item.ProgressLabel.Contains("2 / 10 completed workouts"));
+        Assert.Contains(summary.LockedAchievements, item => item.Name == "100 Total Sets" && item.ProgressLabel.Contains("5 / 100 total sets"));
     }
 
     private static Workout CreateWorkout(string userId, Exercise exercise, DateTime date, int setCount) => new()

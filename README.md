@@ -233,6 +233,70 @@ SQLite database connection is configured in `appsettings.json`:
 }
 ```
 
+### Storage Paths
+
+Everything the app writes is configurable, so a deployment can keep data outside
+the application directory:
+
+```json
+{
+  "Storage": {
+    "ProgressPhotosPath": "App_Data/ProgressPhotos"
+  }
+}
+```
+
+Absolute paths are used as given; relative paths resolve against the content
+root. Either separator works, so the same file is valid on Windows and Linux.
+Any setting can also be supplied as an environment variable —
+`Storage__ProgressPhotosPath`, `ConnectionStrings__DefaultConnection`.
+
+Note that the default connection string is relative to the process working
+directory, not the content root.
+
+### Running as a systemd service
+
+`Program.cs` calls `builder.Services.AddSystemd()`, so the app notifies systemd
+when it is ready, treats `SIGTERM` as a graceful shutdown, and writes log levels
+in the format the journal expects. It is a no-op off systemd, so Windows and
+local development are unaffected.
+
+`Type=notify` is what makes that worthwhile — systemd waits for the app to
+actually be serving before reporting the unit as started, instead of assuming it
+is up the moment the process spawns.
+
+```ini
+[Unit]
+Description=FitTracker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=fittracker
+WorkingDirectory=/opt/fittracker
+ExecStart=/opt/fittracker/FitTracker
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+# Behind a TLS-terminating proxy. Without this the app sees plain HTTP and
+# UseHttpsRedirection bounces every request into a redirect loop.
+Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+# Keep writable data out of the deployment directory.
+Environment=ConnectionStrings__DefaultConnection=Data Source=/var/lib/fittracker/FitTracker.db
+Environment=Storage__ProgressPhotosPath=/var/lib/fittracker/ProgressPhotos
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`WorkingDirectory` matters: without it systemd starts the process in `/`, and a
+relative connection string would try to create the database at the filesystem
+root. Setting both paths above sidesteps that entirely.
+
 ### User Settings
 
 Default user preferences are set in `ApplicationUser.cs`:

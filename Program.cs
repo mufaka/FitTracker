@@ -7,8 +7,20 @@ using FitTracker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Run correctly under `systemctl start/stop`: signals readiness with sd_notify so
+// a Type=notify unit does not report started until the app is actually serving,
+// handles SIGTERM as a graceful shutdown, and formats logs for the journal. This
+// is a no-op when the process is not running under systemd, so it stays safe on
+// Windows and during local development.
+builder.Services.AddSystemd();
+
+// Writable locations are configuration, not constants, so a Linux deployment can
+// point them outside the application directory while Windows keeps the defaults.
+builder.Services.Configure<StorageOptions>(
+    builder.Configuration.GetSection(StorageOptions.SectionName));
+
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Data Source=FitTracker.db";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

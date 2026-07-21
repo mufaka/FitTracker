@@ -3,6 +3,7 @@ using FitTracker.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -26,12 +27,30 @@ public class ProgressPhotoService : IProgressPhotoService
     private static readonly HashSet<string> AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
 
     private readonly ApplicationDbContext _context;
-    private readonly IWebHostEnvironment _environment;
+    private readonly string _photosRootPath;
 
-    public ProgressPhotoService(ApplicationDbContext context, IWebHostEnvironment environment)
+    public ProgressPhotoService(
+        ApplicationDbContext context,
+        IWebHostEnvironment environment,
+        IOptions<StorageOptions>? storageOptions = null)
     {
         _context = context;
-        _environment = environment;
+
+        var configuredPath = storageOptions?.Value.ProgressPhotosPath;
+        if (string.IsNullOrWhiteSpace(configuredPath))
+        {
+            configuredPath = StorageOptions.DefaultProgressPhotosPath;
+        }
+
+        // Accept either separator in configuration so the same appsettings file
+        // works on Windows and Linux.
+        configuredPath = configuredPath
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+
+        _photosRootPath = Path.IsPathRooted(configuredPath)
+            ? configuredPath
+            : Path.Combine(environment.ContentRootPath, configuredPath);
     }
 
     public Task<List<ProgressPhoto>> GetPhotosAsync(string userId)
@@ -102,7 +121,7 @@ public class ProgressPhotoService : IProgressPhotoService
     private string GetPhysicalPath(string relativePath)
     {
         var normalizedRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(_environment.ContentRootPath, "App_Data", "ProgressPhotos", normalizedRelativePath);
+        return Path.Combine(_photosRootPath, normalizedRelativePath);
     }
 
     private static void ValidateUpload(IFormFile file)

@@ -53,7 +53,12 @@ npm run build:css
 
 ### 5. Set Up the Database
 
-The database will be created automatically on first run, but you can manually create it:
+Nothing to do. The app applies any pending migrations and seeds the reference
+data (exercise library, achievement definitions) at startup, so the database is
+created on first run. Both steps are idempotent and run in every environment.
+
+To apply migrations by hand instead — for example to inspect the schema before
+starting the app:
 
 ```bash
 dotnet ef database update
@@ -169,6 +174,10 @@ Remove last migration:
 ```bash
 dotnet ef migrations remove
 ```
+
+A new migration is applied the next time the app starts — `Program.cs` calls
+`Database.MigrateAsync()` during startup. If that fails the app refuses to start
+rather than serving requests against a schema it cannot use.
 
 ### Tailwind CSS
 

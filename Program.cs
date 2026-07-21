@@ -64,20 +64,31 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
-// Seed database in development
-if (app.Environment.IsDevelopment())
+// Bring the database up to date, then make sure the reference data the app needs
+// to function (exercise library, achievement definitions) is present. Both steps
+// are idempotent, and both run in every environment: this ships as a single
+// instance against a SQLite file, so there is no deploy pipeline to apply
+// migrations separately. Previously neither ran outside Development, so a fresh
+// clone started successfully and then failed on every request with
+// "no such table".
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync();
         await DbInitializer.SeedAsync(context);
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        // Refuse to start rather than serve a broken schema: a startup failure
+        // names the problem once, whereas the alternative is every request
+        // failing later for a reason that looks unrelated.
+        logger.LogCritical(ex, "Database initialization failed; the application will not start.");
+        throw;
     }
 }
 

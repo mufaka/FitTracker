@@ -19,8 +19,8 @@
             </div>
             <div class="metric-card">
                 <p class="metric-label">Total volume</p>
-                <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.TotalVolume.ToString("N0")</p>
-                <p class="metric-meta">Pounds moved</p>
+                <p class="metric-value text-emerald-600 dark:text-emerald-300">@UnitConverter.FormatVolume(Model.TotalVolume, Model.Units)</p>
+                <p class="metric-meta">Total weight moved</p>
             </div>
             <div class="metric-card">
                 <p class="metric-label">Duration</p>

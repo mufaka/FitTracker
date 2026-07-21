@@ -1,50 +1,65 @@
 namespace FitTracker.Services;
 
+/// <summary>
+/// Estimates a one-rep max from a single working set, following
+/// <c>Specifications/1RM_Calculation.md</c>: the average of Epley, Brzycki and
+/// Lombardi, rounded to two decimal places.
+/// </summary>
 public static class OneRepMaxCalculator
 {
+    /// <summary>Fewest reps an estimate may be derived from.</summary>
+    public const int MinimumEstimateReps = 3;
+
+    /// <summary>Most reps an estimate may be derived from.</summary>
+    public const int MaximumEstimateReps = 10;
+
+    /// <summary>
+    /// Whether a set can produce a 1RM at all. The formulas are only fitted for
+    /// <see cref="MinimumEstimateReps"/>–<see cref="MaximumEstimateReps"/> reps; a single is not an
+    /// estimate but a measured max, so it counts at face value. Everything else — doubles, high-rep
+    /// sets, and anything without a weight — produces nothing rather than a number nobody should act on.
+    /// </summary>
+    public static bool IsEligible(decimal weight, int reps) =>
+        weight > 0 && (reps == 1 || (reps >= MinimumEstimateReps && reps <= MaximumEstimateReps));
+
     public static OneRepMaxEstimate Calculate(decimal weight, int reps)
     {
-        if (weight <= 0 || reps <= 0)
+        if (!IsEligible(weight, reps))
             return OneRepMaxEstimate.Empty;
 
         if (reps == 1)
         {
-            var single = decimal.Round(weight, 2, MidpointRounding.AwayFromZero);
-            return new OneRepMaxEstimate(single, single, single);
+            var measured = Round(weight);
+            return new OneRepMaxEstimate(measured, measured, measured, measured);
         }
 
-        var epley = CalculateEpley(weight, reps);
-        var brzycki = CalculateBrzycki(weight, reps);
-        var validEstimates = new[] { epley, brzycki }.Where(value => value > 0).ToList();
-        var average = validEstimates.Count == 0
-            ? 0
-            : decimal.Round(validEstimates.Average(), 2, MidpointRounding.AwayFromZero);
+        var epley = Epley(weight, reps);
+        var brzycki = Brzycki(weight, reps);
+        var lombardi = Lombardi(weight, reps);
 
-        return new OneRepMaxEstimate(epley, brzycki, average);
+        // Average the unrounded formulas and round once, so the blended figure does not
+        // inherit three separate rounding errors.
+        return new OneRepMaxEstimate(
+            Round(epley),
+            Round(brzycki),
+            Round(lombardi),
+            Round((epley + brzycki + lombardi) / 3m));
     }
 
     public static decimal CalculateAverage(decimal weight, int reps) => Calculate(weight, reps).Average;
 
-    public static decimal CalculateEpley(decimal weight, int reps)
-    {
-        if (weight <= 0 || reps <= 0)
-            return 0;
+    private static decimal Epley(decimal weight, int reps) => weight * (1 + (reps / 30m));
 
-        return decimal.Round(weight * (1 + (reps / 30m)), 2, MidpointRounding.AwayFromZero);
-    }
+    private static decimal Brzycki(decimal weight, int reps) => weight * 36m / (37m - reps);
 
-    public static decimal CalculateBrzycki(decimal weight, int reps)
-    {
-        if (weight <= 0 || reps <= 0 || reps >= 37)
-            return 0;
+    private static decimal Lombardi(decimal weight, int reps) => weight * (decimal)Math.Pow(reps, 0.10);
 
-        return decimal.Round(weight * 36m / (37m - reps), 2, MidpointRounding.AwayFromZero);
-    }
+    private static decimal Round(decimal value) => decimal.Round(value, 2, MidpointRounding.AwayFromZero);
 }
 
-public sealed record OneRepMaxEstimate(decimal Epley, decimal Brzycki, decimal Average)
+public sealed record OneRepMaxEstimate(decimal Epley, decimal Brzycki, decimal Lombardi, decimal Average)
 {
-    public static OneRepMaxEstimate Empty { get; } = new(0, 0, 0);
+    public static OneRepMaxEstimate Empty { get; } = new(0, 0, 0, 0);
 
     public bool HasValue => Average > 0;
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -82,7 +82,11 @@ public class HistoryModel : PageModel
 
             query = query.Where(w =>
                 (w.Notes != null && EF.Functions.Like(w.Notes, pattern)) ||
-                w.WorkoutExercises.Any(we => EF.Functions.Like(we.Exercise.Name, pattern)));
+                w.WorkoutExercises.Any(we => EF.Functions.Like(we.Exercise.Name, pattern) &&
+                                             (we.Sets.Any() ||
+                                              we.Status == WorkoutExerciseStatuses.Easy ||
+                                              we.Status == WorkoutExerciseStatuses.Medium ||
+                                              we.Status == WorkoutExerciseStatuses.Hard)));
         }
 
         FilteredWorkouts = await query.CountAsync();

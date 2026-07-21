@@ -21,12 +21,16 @@ public class WeeklyModel : PageModel
 
     public DateTime SelectedWeek { get; set; }
     public AnalyticsPeriodSummary Summary { get; set; } = new();
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
 
     public async Task<IActionResult> OnGetAsync(string? week)
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         SelectedWeek = DateTime.TryParse(week, out var parsedWeek)
             ? parsedWeek.Date

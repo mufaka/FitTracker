@@ -39,7 +39,7 @@ public class PersonalRecordService : IPersonalRecordService
 
         foreach (var exerciseGroup in workout.WorkoutExercises.GroupBy(we => we.ExerciseId))
         {
-            var candidate = exerciseGroup
+            var candidates = exerciseGroup
                 .SelectMany(we => we.Sets)
                 .Where(s => s.Reps.HasValue && s.Reps.Value > 0)
                 .Select(s => new PersonalRecordCandidate(
@@ -47,10 +47,21 @@ public class PersonalRecordService : IPersonalRecordService
                     s.Weight ?? 0,
                     s.Reps ?? 0,
                     OneRepMaxCalculator.CalculateAverage(s.Weight ?? 0, s.Reps ?? 0)))
-                .OrderByDescending(c => c.OneRepMax)
-                .ThenByDescending(c => c.Weight)
-                .ThenByDescending(c => c.Reps)
-                .FirstOrDefault();
+                .ToList();
+
+            // Rank by estimated 1RM where there is one. Sets that cannot produce an estimate —
+            // bodyweight work, high-rep sets — still count as records, ranked on the raw numbers,
+            // so pull-up and plank progress does not disappear from PR tracking.
+            var candidate = candidates
+                    .Where(c => c.OneRepMax > 0)
+                    .OrderByDescending(c => c.OneRepMax)
+                    .ThenByDescending(c => c.Weight)
+                    .ThenByDescending(c => c.Reps)
+                    .FirstOrDefault()
+                ?? candidates
+                    .OrderByDescending(c => c.Weight)
+                    .ThenByDescending(c => c.Reps)
+                    .FirstOrDefault();
 
             if (candidate == null)
                 continue;

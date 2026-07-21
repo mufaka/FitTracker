@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using FitTracker.Data;
 using FitTracker.Models;
+using FitTracker.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,9 @@ public class MeasurementsModel : PageModel
     [BindProperty]
     public MeasurementEditorModel Measurement { get; set; } = new();
 
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
+
+    // Weights below are canonical kilograms, as stored; the view converts them once at render.
     public List<BodyMeasurement> Measurements { get; set; } = new();
     public decimal? LatestWeight { get; set; }
     public decimal? LatestBodyFatPercentage { get; set; }
@@ -37,6 +41,9 @@ public class MeasurementsModel : PageModel
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         await LoadMeasurementsAsync(userId);
 
@@ -50,7 +57,8 @@ public class MeasurementsModel : PageModel
             {
                 Id = existingMeasurement.Id,
                 Date = existingMeasurement.Date.Date,
-                Weight = existingMeasurement.Weight,
+                // The editor holds display values; the save handler converts back.
+                Weight = UnitConverter.ToDisplayWeight(existingMeasurement.Weight, UserUnits),
                 BodyFatPercentage = existingMeasurement.BodyFatPercentage,
                 Chest = existingMeasurement.Chest,
                 Waist = existingMeasurement.Waist,
@@ -69,6 +77,9 @@ public class MeasurementsModel : PageModel
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
 
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
+
         ValidateMeasurement();
         if (!ModelState.IsValid)
         {
@@ -86,7 +97,7 @@ public class MeasurementsModel : PageModel
                 return NotFound();
 
             existingMeasurement.Date = Measurement.Date.Date;
-            existingMeasurement.Weight = Measurement.Weight;
+            existingMeasurement.Weight = UnitConverter.ToCanonicalWeight(Measurement.Weight, UserUnits);
             existingMeasurement.BodyFatPercentage = Measurement.BodyFatPercentage;
             existingMeasurement.Chest = Measurement.Chest;
             existingMeasurement.Waist = Measurement.Waist;
@@ -100,7 +111,7 @@ public class MeasurementsModel : PageModel
             {
                 UserId = userId,
                 Date = Measurement.Date.Date,
-                Weight = Measurement.Weight,
+                Weight = UnitConverter.ToCanonicalWeight(Measurement.Weight, UserUnits),
                 BodyFatPercentage = Measurement.BodyFatPercentage,
                 Chest = Measurement.Chest,
                 Waist = Measurement.Waist,
@@ -173,6 +184,12 @@ public class MeasurementEditorModel
     [DataType(DataType.Date)]
     public DateTime Date { get; set; } = DateTime.UtcNow.Date;
 
+    /// <summary>
+    /// Entered and shown in the user's display unit; the page converts to canonical kilograms on
+    /// save. The bound is therefore read in whichever unit the user types, so it is a typo guard
+    /// rather than a physiological limit — it has to clear the heaviest real body weight in the
+    /// looser unit (2000 lbs is about 907 kg), which leaves it generous for a kg user.
+    /// </summary>
     [Display(Name = "Weight")]
     [Range(0, 2000)]
     public decimal? Weight { get; set; }

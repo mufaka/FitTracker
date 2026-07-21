@@ -1,45 +1,200 @@
 @model SetInputModel
+@{
+    var id = Model.WorkoutExerciseId;
+    var rows = Model.Rows.Count;
+    var weightUnit = UnitConverter.WeightUnitLabel(Model.UserUnits);
+    var distanceUnit = UnitConverter.DistanceUnitLabel(Model.UserUnits);
 
-<div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
-    <h3 class="text-lg font-semibold text-slate-950 dark:text-white">Add set #@Model.NextSetNumber</h3>
-    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
-        <input type="hidden" name="WorkoutExerciseId" value="@Model.WorkoutExerciseId" />
-        <div>
-            <label class="input-label">Weight (@Model.UserUnits)</label>
-            <input type="number"
-                   name="Weight_@Model.WorkoutExerciseId"
-                   step="0.01"
-                   class="input"
-                   placeholder="0"
-                   x-init="restoreElementValue($el)"
-                   x-on:input="saveElementValue($el)" />
-        </div>
-        <div>
-            <label class="input-label">Reps</label>
-            <input type="number"
-                   name="Reps_@Model.WorkoutExerciseId"
-                   class="input"
-                   placeholder="0"
-                   x-init="restoreElementValue($el)"
-                   x-on:input="saveElementValue($el)" />
-        </div>
-        <div>
-            <label class="input-label">RPE (1-10)</label>
-            <input type="number"
-                   name="RPE_@Model.WorkoutExerciseId"
-                   min="1"
-                   max="10"
-                   class="input"
-                   placeholder="7"
-                   x-init="restoreElementValue($el)"
-                   x-on:input="saveElementValue($el)" />
-        </div>
-        <button type="submit"
-                asp-page-handler="AddSet"
-                asp-route-workoutExerciseId="@Model.WorkoutExerciseId"
-                x-on:click="startTimer()"
-                class="btn btn-primary xl:min-w-36">
-            Add set
-        </button>
+    // Terse in the header, because at four columns on a phone there is no room for prose. The full
+    // wording stays on every input's aria-label, where it is what a screen reader reads out.
+    string Cell(decimal? value, string suffix) => value.HasValue ? $"{value:0.##}{suffix}" : "–";
+}
+
+@*
+    One table for the whole set log: what was recorded and what is still on offer, a line each. It
+    used to be a table and a form side by side, each in its own bordered box inside the exercise card
+    — three nested surfaces deep on a phone, most of the width spent on padding (WDM-UI-21).
+*@
+<div class="mt-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 class="text-base font-semibold text-slate-950 dark:text-white">Sets</h3>
+        @if (rows > 1)
+        {
+            <p class="text-xs text-slate-500 dark:text-slate-400">Clear a row you did not do.</p>
+        }
     </div>
+
+    <div class="set-table-scroll mt-3">
+    <table class="set-table" style="--set-cols: @Model.FieldCount">
+        <thead>
+            <tr>
+                <th scope="col"><span class="sr-only">Set</span>#</th>
+                @if (Model.ShowWeight)
+                {
+                    <th scope="col">@weightUnit</th>
+                }
+                @if (Model.ShowReps)
+                {
+                    <th scope="col">Reps</th>
+                }
+                @if (Model.ShowDuration)
+                {
+                    <th scope="col">Secs</th>
+                }
+                @if (Model.ShowDistance)
+                {
+                    <th scope="col">@distanceUnit</th>
+                }
+                <th scope="col">RPE</th>
+                @if (Model.IsEditable)
+                {
+                    <th scope="col"><span class="sr-only">Clear</span></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var set in Model.LoggedSets)
+            {
+                <tr class="set-table-logged">
+                    <th scope="row">@set.SetNumber</th>
+                    @if (Model.ShowWeight)
+                    {
+                        <td>@Cell(UnitConverter.ToDisplayWeight(set.Weight, Model.UserUnits), string.Empty)</td>
+                    }
+                    @if (Model.ShowReps)
+                    {
+                        <td>@(set.Reps?.ToString() ?? "–")</td>
+                    }
+                    @if (Model.ShowDuration)
+                    {
+                        <td>@(set.Duration?.ToString() ?? "–")</td>
+                    }
+                    @if (Model.ShowDistance)
+                    {
+                        <td>@Cell(UnitConverter.ToDisplayDistance(set.Distance, Model.UserUnits), string.Empty)</td>
+                    }
+                    @* Muted when the rating supplied it rather than the user, so a number nobody typed
+                       does not read as one they did (WDM-58). *@
+                    <td class="@(set.IsRpeDerived ? "font-normal text-slate-400 dark:text-slate-500" : string.Empty)"
+                        title="@(set.IsRpeDerived ? "From how the exercise was rated" : null)">@(set.RPE?.ToString() ?? "–")</td>
+                    @if (Model.IsEditable)
+                    {
+                        <td>
+                            <button type="submit"
+                                    asp-page-handler="RemoveSet"
+                                    asp-route-setId="@set.Id"
+                                    hx-post="?handler=RemoveSet&amp;setId=@set.Id"
+                                    hx-include="closest form"
+                                    hx-disabled-elt="this"
+                                    class="set-action set-action-danger"
+                                    aria-label="Remove set @set.SetNumber">&times;</button>
+                        </td>
+                    }
+                </tr>
+            }
+
+            @foreach (var row in Model.Rows)
+            {
+                <tr data-set-row>
+                    <th scope="row">@row.SetNumber</th>
+                    @if (Model.ShowWeight)
+                    {
+                        <td>
+                            @* Entered in the user's own unit; WorkoutService converts it to canonical on the way in. *@
+                            <input type="number"
+                                   name="Weight_@(id)_@row.SetNumber"
+                                   step="0.01"
+                                   inputmode="decimal"
+                                   class="input-cell"
+                                   aria-label="Set @row.SetNumber weight in @weightUnit"
+                                   x-init="restoreElementValue($el)"
+                                   x-on:input="saveElementValue($el)" />
+                        </td>
+                    }
+                    @if (Model.ShowReps)
+                    {
+                        <td>
+                            <input type="number"
+                                   name="Reps_@(id)_@row.SetNumber"
+                                   inputmode="numeric"
+                                   class="input-cell"
+                                   value="@row.Reps"
+                                   aria-label="Set @row.SetNumber reps"
+                                   x-init="restoreElementValue($el)"
+                                   x-on:input="saveElementValue($el)" />
+                        </td>
+                    }
+                    @if (Model.ShowDuration)
+                    {
+                        <td>
+                            <input type="number"
+                                   name="Duration_@(id)_@row.SetNumber"
+                                   inputmode="numeric"
+                                   class="input-cell"
+                                   value="@row.DurationSeconds"
+                                   aria-label="Set @row.SetNumber duration in seconds"
+                                   x-init="restoreElementValue($el)"
+                                   x-on:input="saveElementValue($el)" />
+                        </td>
+                    }
+                    @if (Model.ShowDistance)
+                    {
+                        <td>
+                            <input type="number"
+                                   name="Distance_@(id)_@row.SetNumber"
+                                   step="0.01"
+                                   inputmode="decimal"
+                                   class="input-cell"
+                                   value="@row.Distance"
+                                   aria-label="Set @row.SetNumber distance in @distanceUnit"
+                                   x-init="restoreElementValue($el)"
+                                   x-on:input="saveElementValue($el)" />
+                        </td>
+                    }
+                    <td>
+                        <input type="number"
+                               name="RPE_@(id)_@row.SetNumber"
+                               min="1"
+                               max="10"
+                               inputmode="numeric"
+                               class="input-cell"
+                               aria-label="Set @row.SetNumber rate of perceived exertion, 1 to 10"
+                               x-init="restoreElementValue($el)"
+                               x-on:input="saveElementValue($el)" />
+                    </td>
+                    <td>
+                        @* Prescribed rows arrive with the target already in them, so passing on one has
+                           to be as cheap as filling it in — otherwise the prescription records sets
+                           nobody did. *@
+                        <button type="button"
+                                x-on:click="clearSetRow($el)"
+                                class="set-action"
+                                aria-label="Clear set @row.SetNumber">&times;</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+
+    @if (Model.IsEditable)
+    {
+        @* The span of set numbers on offer travels with the form, so the handler knows which inputs
+           are its own. An empty row is a set that was not done, not a blank one to record. *@
+        <input type="hidden" name="SetFirst_@id" value="@Model.Rows[0].SetNumber" />
+        <input type="hidden" name="SetRows_@id" value="@rows" />
+
+        @* hx-post swaps the form in place; the asp-page-handler underneath is the same request as a
+           plain submit, so the button still works if htmx never loads. *@
+        <button type="submit"
+                asp-page-handler="LogSets"
+                asp-route-workoutExerciseId="@id"
+                hx-post="?handler=LogSets&amp;workoutExerciseId=@id"
+                hx-include="closest form"
+                hx-disabled-elt="this"
+                x-on:click="startTimer()"
+                class="btn btn-primary mt-3 w-full sm:w-auto sm:min-w-40">
+            @(rows == 1 ? $"Log set {Model.Rows[0].SetNumber}" : $"Log {rows} sets")
+        </button>
+    }
 </div>

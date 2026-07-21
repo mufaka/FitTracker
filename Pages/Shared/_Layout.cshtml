@@ -83,6 +83,10 @@
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                             <span>Templates</span>
                         </a>
+                        <a asp-page="/Plans/Index" class="@NavClasses("/Plans")">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>Plans</span>
+                        </a>
                         <a asp-page="/Calendar" class="@NavClasses("/Calendar")">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             <span>Calendar</span>
@@ -187,6 +191,7 @@
                             <a asp-page="/Workouts/Start" class="@NavClasses("/Workouts")" @@click="sidebarOpen = false">Workouts</a>
                             <a asp-page="/Exercises/Index" class="@NavClasses("/Exercises")" @@click="sidebarOpen = false">Exercises</a>
                             <a asp-page="/Templates/Index" class="@NavClasses("/Templates")" @@click="sidebarOpen = false">Templates</a>
+                            <a asp-page="/Plans/Index" class="@NavClasses("/Plans")" @@click="sidebarOpen = false">Plans</a>
                             <a asp-page="/Calendar" class="@NavClasses("/Calendar")" @@click="sidebarOpen = false">Calendar</a>
                             <a asp-page="/Measurements" class="@NavClasses("/Measurements")" @@click="sidebarOpen = false">Measurements</a>
                             <a asp-page="/Photos" class="@NavClasses("/Photos")" @@click="sidebarOpen = false">Photos</a>

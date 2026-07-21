@@ -31,12 +31,16 @@ public class DailyModel : PageModel
     public List<Workout> DaysWorkouts { get; set; } = new();
     public DateTime WeekStart { get; set; }
     public List<DateTime> WeekWorkoutDays { get; set; } = new();
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
 
     public async Task<IActionResult> OnGetAsync(string? date)
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         // Parse selected date or default to today
         if (DateTime.TryParse(date, out var parsedDate))

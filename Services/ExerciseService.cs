@@ -70,6 +70,8 @@ public class ExerciseService : IExerciseService
             .Include(we => we.Workout)
             .Include(we => we.Sets)
             .Where(we => we.ExerciseId == exerciseId && we.Workout.UserId == userId)
+            // "Used 12 times, last on Tuesday" has to mean performed, not merely planned (WDM-55).
+            .Where(WorkoutExerciseStatuses.PerformedPredicate)
             .ToListAsync();
 
         var allSets = workoutExercises.SelectMany(we => we.Sets).ToList();

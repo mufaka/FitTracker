@@ -32,7 +32,7 @@
         </div>
         <div class="metric-card">
             <p class="metric-label">Latest weight</p>
-            <p class="metric-value text-emerald-600 dark:text-emerald-300">@(Model.LatestWeight?.ToString("0.##") ?? "—")</p>
+            <p class="metric-value text-emerald-600 dark:text-emerald-300">@(UnitConverter.FormatWeight(Model.LatestWeight, Model.UserUnits) is { Length: > 0 } latestWeight ? latestWeight : "—")</p>
             <p class="metric-meta">Most recent recorded body weight</p>
         </div>
         <div class="metric-card">
@@ -67,8 +67,9 @@
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label asp-for="Measurement.Weight" class="input-label"></label>
-                        <input asp-for="Measurement.Weight" type="number" step="0.1" class="input" placeholder="180.0" />
+                        <label asp-for="Measurement.Weight" class="input-label">Weight (@UnitConverter.WeightUnitLabel(Model.UserUnits))</label>
+                        @* step matches UnitConverter's display precision: a converted weight can land on a hundredth. *@
+                        <input asp-for="Measurement.Weight" type="number" step="0.01" class="input" placeholder="@(Model.UserUnits == UnitConverter.Kilograms ? "80.0" : "180.0")" />
                         <span asp-validation-for="Measurement.Weight" class="mt-2 block text-sm text-red-600 dark:text-red-300"></span>
                     </div>
                     <div>
@@ -160,7 +161,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Weight</th>
+                            <th>Weight (@UnitConverter.WeightUnitLabel(Model.UserUnits))</th>
                             <th>Body fat</th>
                             <th>Waist</th>
                             <th>Notes</th>
@@ -172,7 +173,7 @@
                         {
                             <tr>
                                 <td class="font-semibold">@measurement.Date.ToString("MMM dd, yyyy")</td>
-                                <td>@(measurement.Weight?.ToString("0.##") ?? "—")</td>
+                                <td>@(UnitConverter.FormatWeightValue(measurement.Weight, Model.UserUnits) is { Length: > 0 } weight ? weight : "—")</td>
                                 <td>@(measurement.BodyFatPercentage.HasValue ? $"{measurement.BodyFatPercentage:0.##}%" : "—")</td>
                                 <td>@(measurement.Waist?.ToString("0.##") ?? "—")</td>
                                 <td class="max-w-xs truncate">@(string.IsNullOrWhiteSpace(measurement.Notes) ? "—" : measurement.Notes)</td>
@@ -204,7 +205,7 @@
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const measurementLabels = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => m.Date.ToString("MMM dd"))));
-        const measurementWeights = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => m.Weight)));
+        const measurementWeights = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => UnitConverter.ToDisplayWeight(m.Weight, Model.UserUnits))));
         const measurementBodyFat = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => m.BodyFatPercentage)));
         const measurementWaist = @Html.Raw(JsonSerializer.Serialize(Model.Measurements.OrderBy(m => m.Date).Select(m => m.Waist)));
 
@@ -239,7 +240,7 @@
                     labels: measurementLabels,
                     datasets: [
                         {
-                            label: 'Weight',
+                            label: 'Weight (@UnitConverter.WeightUnitLabel(Model.UserUnits))',
                             data: measurementWeights,
                             borderColor: 'rgba(59, 130, 246, 1)',
                             backgroundColor: 'rgba(59, 130, 246, 0.16)',

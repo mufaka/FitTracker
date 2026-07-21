@@ -26,8 +26,10 @@ public class DetailsModel : PageModel
     }
 
     public Workout? Workout { get; set; }
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
     public int TotalSets { get; set; }
     public int TotalReps { get; set; }
+    /// <summary>Canonical, like the stored weights it sums; the view converts once at render.</summary>
     public decimal TotalVolume { get; set; }
     public decimal AverageRPE { get; set; }
     public List<PersonalRecord> WorkoutPersonalRecords { get; set; } = new();
@@ -41,6 +43,9 @@ public class DetailsModel : PageModel
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         Workout = await _context.Workouts
             .Include(w => w.WorkoutExercises)

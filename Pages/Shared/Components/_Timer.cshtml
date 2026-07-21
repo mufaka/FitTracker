@@ -8,8 +8,10 @@
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">The timer starts automatically when you add a set and continues even after the page refreshes.</p>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-[minmax(0,10rem)_auto_auto_auto] sm:items-end">
-            <div>
+        @* The duration on its own line, then the three controls abreast. Stacking all four full-width
+           put the exercise being logged below the fold on a phone. *@
+        <div class="grid grid-cols-3 gap-3 sm:grid-cols-[minmax(0,10rem)_auto_auto_auto] sm:items-end sm:gap-4">
+            <div class="col-span-3 sm:col-span-1">
                 <label class="input-label" for="restDuration">Duration (seconds)</label>
                 <input id="restDuration"
                        type="number"
@@ -19,7 +21,7 @@
                        x-model.number="durationSeconds"
                        x-on:change="updateDuration()" />
             </div>
-            <button type="button" class="btn btn-secondary" x-on:click="startTimer()" x-text="isRunning ? 'Restart timer' : 'Start timer'"></button>
+            <button type="button" class="btn btn-secondary" x-on:click="startTimer()" x-text="isRunning ? 'Restart' : 'Start'"></button>
             <button type="button" class="btn btn-secondary" x-on:click="togglePause()" x-bind:disabled="!hasTimer" x-bind:class="!hasTimer ? 'opacity-50 cursor-not-allowed' : ''" x-text="isRunning ? 'Pause' : 'Resume'"></button>
             <button type="button" class="btn btn-secondary" x-on:click="resetTimer()" x-bind:disabled="!hasTimer && !completed" x-bind:class="!hasTimer && !completed ? 'opacity-50 cursor-not-allowed' : ''">Reset</button>
         </div>

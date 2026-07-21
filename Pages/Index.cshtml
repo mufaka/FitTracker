@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "Dashboard";
@@ -71,12 +71,13 @@
                                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
                                         <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@workout.Date.ToString("MMM dd, yyyy")</h3>
-                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@workout.Duration minutes · @workout.WorkoutExercises.Count exercises</p>
+                                        @{ var performed = workout.WorkoutExercises.Where(we => we.IsPerformed).ToList(); }
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@workout.Duration minutes · @performed.Count exercises</p>
                                         <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                                            @string.Join(", ", workout.WorkoutExercises.Take(3).Select(we => we.Exercise.Name))
-                                            @if (workout.WorkoutExercises.Count > 3)
+                                            @string.Join(", ", performed.Take(3).Select(we => we.Exercise.Name))
+                                            @if (performed.Count > 3)
                                             {
-                                                <text> + @(workout.WorkoutExercises.Count - 3) more</text>
+                                                <text> + @(performed.Count - 3) more</text>
                                             }
                                         </p>
                                     </div>
@@ -159,24 +160,24 @@
                         </div>
                     }
 
-                    @if (Model.WorkoutSuggestions.TemplateSuggestion != null)
+                    @if (Model.WorkoutSuggestions.PlanSuggestion != null)
                     {
                         <div class="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
-                                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary-500 dark:text-primary-300">Suggested template</p>
-                                    <h3 class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@Model.WorkoutSuggestions.TemplateSuggestion.Name</h3>
-                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutSuggestions.TemplateSuggestion.ExerciseCount exercise@(Model.WorkoutSuggestions.TemplateSuggestion.ExerciseCount == 1 ? string.Empty : "s")</p>
-                                    <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">@Model.WorkoutSuggestions.TemplateSuggestion.Reason</p>
-                                    @if (!string.IsNullOrWhiteSpace(Model.WorkoutSuggestions.TemplateSuggestion.Description))
+                                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary-500 dark:text-primary-300">Suggested plan</p>
+                                    <h3 class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@Model.WorkoutSuggestions.PlanSuggestion.Name</h3>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutSuggestions.PlanSuggestion.ExerciseCount exercise@(Model.WorkoutSuggestions.PlanSuggestion.ExerciseCount == 1 ? string.Empty : "s")</p>
+                                    <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">@Model.WorkoutSuggestions.PlanSuggestion.Reason</p>
+                                    @if (!string.IsNullOrWhiteSpace(Model.WorkoutSuggestions.PlanSuggestion.Description))
                                     {
-                                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutSuggestions.TemplateSuggestion.Description</p>
+                                        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutSuggestions.PlanSuggestion.Description</p>
                                     }
                                 </div>
 
                                 @if (Model.TodaysWorkout == null || Model.TodaysWorkout.IsCompleted)
                                 {
-                                    <a asp-page="/Workouts/Start" asp-route-templateId="@Model.WorkoutSuggestions.TemplateSuggestion.TemplateId" class="btn btn-primary">Use suggestion</a>
+                                    <a asp-page="/Workouts/Start" asp-route-planId="@Model.WorkoutSuggestions.PlanSuggestion.PlanId" class="btn btn-primary">Use suggestion</a>
                                 }
                                 else
                                 {
@@ -207,7 +208,7 @@
                             }
                         </div>
 
-                        @if (Model.WorkoutSuggestions.TemplateSuggestion == null && !string.IsNullOrWhiteSpace(focusQuery))
+                        @if (Model.WorkoutSuggestions.PlanSuggestion == null && !string.IsNullOrWhiteSpace(focusQuery))
                         {
                             <a asp-page="/Exercises/Index" asp-route-searchTerm="@focusQuery" class="btn btn-primary mt-6">Use suggestion</a>
                         }
@@ -251,31 +252,31 @@
             <section class="surface-card">
                 <div class="flex items-center justify-between gap-4">
                     <div>
-                        <p class="page-eyebrow">Templates</p>
-                        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Start from a saved plan</h2>
+                        <p class="page-eyebrow">Plans</p>
+                        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Start from a plan</h2>
                     </div>
-                    <a asp-page="/Templates/Index" class="btn btn-secondary">Manage</a>
+                    <a asp-page="/Plans/Index" class="btn btn-secondary">Manage</a>
                 </div>
 
-                @if (Model.ActiveTemplates.Any())
+                @if (Model.ActivePlans.Any())
                 {
                     <div class="mt-6 space-y-3">
-                        @foreach (var template in Model.ActiveTemplates)
+                        @foreach (var plan in Model.ActivePlans)
                         {
                             <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
                                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
-                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@template.Name</h3>
-                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@template.Exercises.Count exercise@(template.Exercises.Count == 1 ? string.Empty : "s")</p>
-                                        @if (!string.IsNullOrWhiteSpace(template.Description))
+                                        <h3 class="text-lg font-semibold text-slate-950 dark:text-white">@plan.Name</h3>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@plan.Exercises.Count exercise@(plan.Exercises.Count == 1 ? string.Empty : "s")</p>
+                                        @if (!string.IsNullOrWhiteSpace(plan.Description))
                                         {
-                                            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@template.Description</p>
+                                            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">@plan.Description</p>
                                         }
                                     </div>
 
                                     @if (Model.TodaysWorkout == null || Model.TodaysWorkout.IsCompleted)
                                     {
-                                        <a asp-page="/Workouts/Start" asp-route-templateId="@template.Id" class="btn btn-primary">Start template</a>
+                                        <a asp-page="/Workouts/Start" asp-route-planId="@plan.Id" class="btn btn-primary">Start plan</a>
                                     }
                                     else
                                     {
@@ -289,9 +290,9 @@
                 else
                 {
                     <div class="empty-state mt-6">
-                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No active templates yet</h3>
-                        <p class="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">Save your most-used training splits so you can launch them directly from the dashboard.</p>
-                        <a asp-page="/Templates/Create" class="btn btn-primary mt-5">Create template</a>
+                        <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No active plans yet</h3>
+                        <p class="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">Build a plan from templates and individual exercises, then perform it straight from the dashboard.</p>
+                        <a asp-page="/Plans/Create" class="btn btn-primary mt-5">Create plan</a>
                     </div>
                 }
             </section>
@@ -308,9 +309,9 @@
                     <a asp-page="/Photos" class="btn btn-secondary justify-between">Manage progress photos <span>→</span></a>
                     <a asp-page="/OneRepMax" class="btn btn-secondary justify-between">Use 1RM calculator <span>→</span></a>
                     <a asp-page="/Analytics/Index" class="btn btn-secondary justify-between">Open analytics dashboard <span>→</span></a>
-                    @if (Model.WorkoutSuggestions.TemplateSuggestion != null && (Model.TodaysWorkout == null || Model.TodaysWorkout.IsCompleted))
+                    @if (Model.WorkoutSuggestions.PlanSuggestion != null && (Model.TodaysWorkout == null || Model.TodaysWorkout.IsCompleted))
                     {
-                        <a asp-page="/Workouts/Start" asp-route-templateId="@Model.WorkoutSuggestions.TemplateSuggestion.TemplateId" class="btn btn-primary justify-between">Use suggestion <span>→</span></a>
+                        <a asp-page="/Workouts/Start" asp-route-planId="@Model.WorkoutSuggestions.PlanSuggestion.PlanId" class="btn btn-primary justify-between">Use suggestion <span>→</span></a>
                     }
                 </div>
             </section>

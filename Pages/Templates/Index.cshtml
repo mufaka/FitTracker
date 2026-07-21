@@ -2,6 +2,28 @@
 @model FitTracker.Pages.Templates.IndexModel
 @{
     ViewData["Title"] = "Workout Templates";
+
+    // Every part of a prescription is optional, so the chip shows whichever parts were declared:
+    // "3 × 10", "45s", "5 km", or a combination. Distance is stored canonically and converted here.
+    string Prescription(WorkoutTemplateExercise exercise)
+    {
+        var parts = new List<string>();
+
+        if (exercise.DefaultSets.HasValue && exercise.DefaultReps.HasValue)
+            parts.Add($"{exercise.DefaultSets} × {exercise.DefaultReps}");
+        else if (exercise.DefaultSets.HasValue)
+            parts.Add($"{exercise.DefaultSets} sets");
+        else if (exercise.DefaultReps.HasValue)
+            parts.Add($"{exercise.DefaultReps} reps");
+
+        if (exercise.DefaultDurationSeconds.HasValue)
+            parts.Add(UnitConverter.FormatDuration(exercise.DefaultDurationSeconds));
+
+        if (exercise.DefaultDistance.HasValue)
+            parts.Add(UnitConverter.FormatDistance(exercise.DefaultDistance, Model.UserUnits));
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : "No target";
+    }
 }
 
 <div class="page-shell">
@@ -9,15 +31,30 @@
         <div class="page-header gap-8">
             <div>
                 <p class="page-eyebrow">Workout templates</p>
-                <h1 class="page-title">Build repeatable sessions.</h1>
-                <p class="page-description">Create reusable training lineups, tune default set targets, and launch a workout from a saved structure in one click.</p>
+                <h1 class="page-title">Reusable blocks to build plans from.</h1>
+                <p class="page-description">A template is a grouping of exercises — a warm-up, an accessory block, or a whole session. Templates are the ingredients: combine them into a plan, and perform the plan.</p>
             </div>
             <div class="flex flex-wrap gap-3">
                 <a asp-page="/Templates/Create" class="btn btn-primary">Create template</a>
-                <a asp-page="/Workouts/Start" class="btn btn-secondary">Start empty workout</a>
+                <a asp-page="/Templates/Catalog" class="btn btn-secondary">Browse catalog</a>
+                <a asp-page="/Plans/Index" class="btn btn-secondary">Your plans</a>
             </div>
         </div>
     </section>
+
+    <div class="flex flex-wrap gap-2">
+        @foreach (var (value, label) in new[]
+        {
+            (TemplateOwnership.All, "All"),
+            (TemplateOwnership.Personal, "Yours"),
+            (TemplateOwnership.BuiltIn, "Built-in"),
+        })
+        {
+            <a asp-page="/Templates/Index"
+               asp-route-ownership="@value"
+               class="chip @(Model.Ownership == value ? "chip-primary" : string.Empty)">@label</a>
+        }
+    </div>
 
     @if (Model.Templates.Any())
     {
@@ -29,7 +66,14 @@
                     <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="chip @(template.IsActive ? "chip-success" : string.Empty)">@(template.IsActive ? "Active" : "Paused")</span>
+                                @if (template.IsBuiltIn)
+                                {
+                                    <span class="chip chip-primary">Built-in</span>
+                                }
+                                else
+                                {
+                                    <span class="chip @(template.IsActive ? "chip-success" : string.Empty)">@(template.IsActive ? "Active" : "Paused")</span>
+                                }
                                 <span class="chip">@orderedExercises.Count exercise@(orderedExercises.Count == 1 ? string.Empty : "s")</span>
                             </div>
                             <h2 class="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@template.Name</h2>
@@ -39,11 +83,17 @@
                             }
                         </div>
                         <div class="flex flex-wrap gap-3">
-                            @if (template.IsActive)
+                            @* A built-in belongs to nobody, so it can only be copied — the copy is
+                               what the user then owns and edits (WDM-07, WDM-46). *@
+                            <form method="post" asp-page-handler="Copy" asp-route-id="@template.Id" asp-route-ownership="@Model.Ownership">
+                                <button type="submit" class="btn btn-secondary">Copy</button>
+                            </form>
+                            @* No Start action: a template builds a plan, and the plan is what a
+                               workout is performed from (WDM-02). *@
+                            @if (!template.IsBuiltIn)
                             {
-                                <a asp-page="/Workouts/Start" asp-route-templateId="@template.Id" class="btn btn-primary">Start</a>
+                                <a asp-page="/Templates/Create" asp-route-id="@template.Id" class="btn btn-secondary">Edit</a>
                             }
-                            <a asp-page="/Templates/Create" asp-route-id="@template.Id" class="btn btn-secondary">Edit</a>
                         </div>
                     </div>
 
@@ -56,7 +106,7 @@
                                         <p class="font-semibold text-slate-950 dark:text-white">@exercise.Order. @exercise.Exercise.Name</p>
                                         <p class="text-sm text-slate-500 dark:text-slate-400">@exercise.Exercise.MuscleGroups · @exercise.Exercise.Equipment</p>
                                     </div>
-                                    <span class="chip">@exercise.DefaultSets × @exercise.DefaultReps</span>
+                                    <span class="chip">@Prescription(exercise)</span>
                                 </div>
                             </div>
                         }
@@ -67,9 +117,12 @@
                         }
                     </div>
 
-                    <form method="post" asp-page-handler="Delete" asp-route-id="@template.Id" class="mt-6">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this template?')">Delete template</button>
-                    </form>
+                    @if (!template.IsBuiltIn)
+                    {
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@template.Id" asp-route-ownership="@Model.Ownership" class="mt-6">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this template?')">Delete template</button>
+                        </form>
+                    }
                 </section>
             }
         </div>

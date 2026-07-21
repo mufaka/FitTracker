@@ -82,11 +82,11 @@
             <div class="space-y-4">
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total volume</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalVolume.ToString("N0")</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(Model.Summary.TotalVolume, Model.UserUnits)</p>
                 </div>
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Previous week volume</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.PreviousPeriodVolume.ToString("N0")</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(Model.Summary.PreviousPeriodVolume, Model.UserUnits)</p>
                 </div>
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Duration</p>
@@ -116,7 +116,7 @@
                 {
                     <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                         <p class="text-sm font-medium text-slate-500 dark:text-slate-400">@item.MuscleGroup</p>
-                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@item.Volume.ToString("N0")</p>
+                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(item.Volume, Model.UserUnits)</p>
                         <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@item.ExerciseCount logged exercise entry@(item.ExerciseCount == 1 ? string.Empty : "ies")</p>
                     </div>
                 }
@@ -136,7 +136,7 @@
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const weeklyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
-        const weeklyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));
+        const weeklyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => UnitConverter.ToDisplayVolume(point.Volume, Model.UserUnits))));
         const weeklyWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Workouts)));
 
         const weeklyContext = document.getElementById('weeklyVolumeChart');
@@ -147,7 +147,7 @@
                     labels: weeklyLabels,
                     datasets: [
                         {
-                            label: 'Volume',
+                            label: 'Volume (@(UnitConverter.WeightUnitLabel(Model.UserUnits)))',
                             data: weeklyVolumes,
                             backgroundColor: 'rgba(59, 130, 246, 0.65)',
                             borderRadius: 12,

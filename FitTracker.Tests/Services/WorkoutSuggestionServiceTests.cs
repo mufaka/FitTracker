@@ -1,4 +1,4 @@
-using FitTracker.Models;
+﻿using FitTracker.Models;
 using FitTracker.Services;
 using FitTracker.Tests.TestInfrastructure;
 using Xunit;
@@ -33,9 +33,9 @@ public class WorkoutSuggestionServiceTests
             CreateWorkout(user.Id, today.AddDays(-10), benchPress, inclinePress),
             CreateWorkout(user.Id, today.AddDays(-5), squat),
             CreateWorkout(user.Id, today.AddDays(-2), benchPress));
-        context.WorkoutTemplates.AddRange(
-            CreateTemplate(user.Id, "Pull Day", barbellRow, latPulldown),
-            CreateTemplate(user.Id, "Push Day", benchPress, inclinePress));
+        context.WorkoutPlans.AddRange(
+            CreatePlan(user.Id, "Pull Day", barbellRow, latPulldown),
+            CreatePlan(user.Id, "Push Day", benchPress, inclinePress));
 
         await context.SaveChangesAsync();
 
@@ -48,14 +48,14 @@ public class WorkoutSuggestionServiceTests
         // which is how this test previously kept passing while it was rotting.
         Assert.Contains("Back", suggestions.FocusMuscleGroups);
         Assert.DoesNotContain("Chest", suggestions.FocusMuscleGroups);
-        Assert.NotNull(suggestions.TemplateSuggestion);
-        Assert.Equal("Pull Day", suggestions.TemplateSuggestion!.Name);
+        Assert.NotNull(suggestions.PlanSuggestion);
+        Assert.Equal("Pull Day", suggestions.PlanSuggestion!.Name);
         Assert.Contains(suggestions.SuggestedExercises, exercise => exercise.Name == "Barbell Row");
         Assert.Contains(suggestions.SuggestedExercises, exercise => exercise.Name == "Lat Pulldown");
     }
 
     [Fact]
-    public async Task GetSuggestionsAsync_UsesSavedTemplatesAndLibraryWhenNoHistoryExists()
+    public async Task GetSuggestionsAsync_UsesSavedPlansAndLibraryWhenNoHistoryExists()
     {
         using var factory = new TestDbContextFactory();
         using var context = factory.CreateContext();
@@ -67,15 +67,15 @@ public class WorkoutSuggestionServiceTests
 
         context.Users.Add(user);
         context.Exercises.AddRange(squat, row, press);
-        context.WorkoutTemplates.Add(CreateTemplate(user.Id, "Starter Full Body", squat, row, press));
+        context.WorkoutPlans.Add(CreatePlan(user.Id, "Starter Full Body", squat, row, press));
         await context.SaveChangesAsync();
 
         var service = new WorkoutSuggestionService(context);
         var suggestions = await service.GetSuggestionsAsync(user.Id, 28);
 
         Assert.True(suggestions.HasSuggestions);
-        Assert.NotNull(suggestions.TemplateSuggestion);
-        Assert.Equal("Starter Full Body", suggestions.TemplateSuggestion!.Name);
+        Assert.NotNull(suggestions.PlanSuggestion);
+        Assert.Equal("Starter Full Body", suggestions.PlanSuggestion!.Name);
         Assert.NotEmpty(suggestions.SuggestedExercises);
     }
 
@@ -103,18 +103,18 @@ public class WorkoutSuggestionServiceTests
             .ToList()
     };
 
-    private static WorkoutTemplate CreateTemplate(string userId, string name, params Exercise[] exercises) => new()
+    private static WorkoutPlan CreatePlan(string userId, string name, params Exercise[] exercises) => new()
     {
         UserId = userId,
         Name = name,
         IsActive = true,
         Exercises = exercises
-            .Select((exercise, index) => new WorkoutTemplateExercise
+            .Select((exercise, index) => new WorkoutPlanExercise
             {
                 Exercise = exercise,
                 Order = index + 1,
-                DefaultSets = 3,
-                DefaultReps = 8
+                TargetSets = 3,
+                TargetReps = 8
             })
             .ToList()
     };

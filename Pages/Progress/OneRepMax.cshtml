@@ -1,0 +1,330 @@
+@page
+@using System.Text.Json
+@using FitTracker.Services
+@model FitTracker.Pages.Progress.OneRepMaxModel
+@{
+    ViewData["Title"] = "1RM Tracking";
+    var projection = Model.Trend?.Projection;
+}
+
+<div class="page-shell">
+    <div class="flex flex-wrap gap-3">
+        <a asp-page="/Progress/Index" class="chip">← Overall progress</a>
+        <a asp-page="/PRs/Index" class="chip">Personal records</a>
+        <a asp-page="/OneRepMax" class="chip">1RM calculator</a>
+    </div>
+
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">One-rep max tracking</p>
+                <h1 class="page-title">Every lift, ranked and trending.</h1>
+                <p class="page-description">
+                    Estimated from your logged sets as the average of the Epley, Brzycki and Lombardi formulas.
+                    Only weighted exercises count, and only sets of @OneRepMaxCalculator.MinimumEstimateReps–@OneRepMaxCalculator.MaximumEstimateReps reps
+                    — or a true single — are close enough to a max to estimate from.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Workouts/Start" class="btn btn-primary">Log workout</a>
+                <a asp-page="/Analytics/Index" class="btn btn-secondary">Analytics</a>
+            </div>
+        </div>
+    </section>
+
+    @if (!Model.Leaderboard.HasEntries)
+    {
+        <div class="empty-state">
+            <h3 class="text-xl font-semibold text-slate-950 dark:text-white">No estimates yet</h3>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+                Log a weighted exercise for @OneRepMaxCalculator.MinimumEstimateReps–@OneRepMaxCalculator.MaximumEstimateReps reps
+                and it will appear here with a 1RM estimate, a progression chart and a projection.
+            </p>
+            <a asp-page="/Workouts/Start" class="btn btn-primary mt-5">Start a workout</a>
+        </div>
+    }
+    else
+    {
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="metric-card">
+                <p class="metric-label">Heaviest 1RM</p>
+                <p class="metric-value text-primary-600 dark:text-primary-300">@UnitConverter.FormatWeight(Model.Leaderboard.HeaviestOneRepMax, Model.UserUnits)</p>
+                <p class="metric-meta">@Model.Leaderboard.Entries.First().ExerciseName</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Tracked lifts</p>
+                <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Leaderboard.Entries.Count</p>
+                <p class="metric-meta">Exercises with at least one estimate</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Estimated sessions</p>
+                <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Leaderboard.TotalSessions</p>
+                <p class="metric-meta">Workouts that produced an estimate</p>
+            </div>
+            <div class="metric-card">
+                <p class="metric-label">Trend @(Model.Trend?.ExerciseName ?? "—")</p>
+                @if (projection != null)
+                {
+                    <p class="metric-value @(projection.IsImproving ? "text-emerald-600 dark:text-emerald-300" : "text-red-500 dark:text-red-300")">@(UnitConverter.ToDisplayWeight(projection.ChangePerWeek, Model.UserUnits).ToString("+0.##;-0.##;0")) @UnitConverter.WeightUnitLabel(Model.UserUnits)</p>
+                    <p class="metric-meta">Per week over @projection.SampleCount sessions</p>
+                }
+                else
+                {
+                    <p class="metric-value text-slate-400 dark:text-slate-500">—</p>
+                    <p class="metric-meta">Needs more sessions to project</p>
+                }
+            </div>
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Leaderboard</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Your strongest lifts</h2>
+                </div>
+                <span class="chip">Change over @Model.Leaderboard.TrendWindowDays days</span>
+            </div>
+            <div class="table-shell">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Exercise</th>
+                            <th>Best 1RM</th>
+                            <th>From</th>
+                            <th>Achieved</th>
+                            <th>Latest</th>
+                            <th>Change</th>
+                            <th>History</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.Leaderboard.Entries)
+                        {
+                            <tr class="@(entry.ExerciseId == Model.Trend?.ExerciseId ? "bg-primary-50/60 dark:bg-primary-500/10" : null)">
+                                <td class="font-semibold">@entry.Rank</td>
+                                <td>
+                                    <a asp-page="/Exercises/Details" asp-route-id="@entry.ExerciseId" class="font-semibold text-slate-950 transition hover:text-primary-600 dark:text-white dark:hover:text-primary-300">@entry.ExerciseName</a>
+                                    <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">@entry.Equipment · @entry.SessionCount sessions</span>
+                                </td>
+                                <td class="font-semibold">@UnitConverter.FormatWeight(entry.BestOneRepMax, Model.UserUnits)</td>
+                                <td>@UnitConverter.FormatWeight(entry.BestWeight, Model.UserUnits) × @entry.BestReps</td>
+                                <td>@entry.BestAchievedOn.ToString("MMM dd, yyyy")</td>
+                                <td>@UnitConverter.FormatWeight(entry.CurrentOneRepMax, Model.UserUnits)</td>
+                                <td>
+                                    @if (entry.RecentChange.HasValue)
+                                    {
+                                        <span class="font-semibold @(entry.RecentChange.Value >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500 dark:text-red-300")">@(UnitConverter.ToDisplayWeight(entry.RecentChange.Value, Model.UserUnits).ToString("+0.##;-0.##;0")) @UnitConverter.WeightUnitLabel(Model.UserUnits)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-sm text-slate-500 dark:text-slate-400">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-page="/Progress/OneRepMax" asp-route-exerciseId="@entry.ExerciseId" class="text-sm font-medium text-primary-600 transition hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-200">View trend</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    @if (Model.Trend is { HasHistory: true } trend)
+    {
+        <section class="surface-card">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">1RM progression</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@trend.ExerciseName over time</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="chip chip-primary">Best @UnitConverter.FormatWeight(trend.BestOneRepMax, Model.UserUnits)</span>
+                    <span class="chip">Latest @UnitConverter.FormatWeight(trend.CurrentOneRepMax, Model.UserUnits)</span>
+                </div>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                <canvas id="oneRepMaxTrendChart" height="180"></canvas>
+            </div>
+
+            @if (projection != null)
+            {
+                <div class="mt-6">
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Projection</p>
+                        <span class="chip">
+                            @if (projection.IsReliable)
+                            {
+                                <text>Steady trend · R² @projection.RSquared.ToString("0.00")</text>
+                            }
+                            else
+                            {
+                                <text>Scattered results · R² @projection.RSquared.ToString("0.00")</text>
+                            }
+                        </span>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        @foreach (var horizon in projection.Horizons)
+                        {
+                            <div class="metric-card">
+                                <p class="metric-label">In @horizon.Days days</p>
+                                <p class="metric-value text-sky-600 dark:text-sky-300">@UnitConverter.FormatWeight(horizon.OneRepMax, Model.UserUnits)</p>
+                                <p class="metric-meta">@horizon.Date.ToString("MMM dd, yyyy")</p>
+                            </div>
+                        }
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                        A straight line through @projection.SampleCount sessions, continued forward at
+                        @(UnitConverter.ToDisplayWeight(projection.ChangePerWeek, Model.UserUnits).ToString("+0.##;-0.##;0")) @UnitConverter.WeightUnitLabel(Model.UserUnits) per week.
+                        @if (!projection.IsReliable)
+                        {
+                            <text>Your sessions vary too much for this to be worth training to — treat it as a direction, not a target.</text>
+                        }
+                    </p>
+                </div>
+            }
+            else
+            {
+                <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">
+                    A projection needs at least three sessions spread over two weeks. Keep logging @trend.ExerciseName and one will appear here.
+                </p>
+            }
+        </section>
+
+        <section class="surface-card">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Estimate history</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Session by session</h2>
+                </div>
+                <span class="chip">Newest first</span>
+            </div>
+            <div class="table-shell">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Best set</th>
+                            <th>Epley</th>
+                            <th>Brzycki</th>
+                            <th>Lombardi</th>
+                            <th>Average</th>
+                            <th>Workout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var point in trend.Points.OrderByDescending(point => point.Date))
+                        {
+                            <tr>
+                                <td class="font-semibold">
+                                    @point.Date.ToString("MMM dd, yyyy")
+                                    @if (point.IsPersonalBest)
+                                    {
+                                        <span class="chip chip-success ml-2">Best so far</span>
+                                    }
+                                </td>
+                                <td>@UnitConverter.FormatWeight(point.Weight, Model.UserUnits) × @point.Reps</td>
+                                <td>@UnitConverter.FormatWeight(point.Epley, Model.UserUnits)</td>
+                                <td>@UnitConverter.FormatWeight(point.Brzycki, Model.UserUnits)</td>
+                                <td>@UnitConverter.FormatWeight(point.Lombardi, Model.UserUnits)</td>
+                                <td class="font-semibold">@UnitConverter.FormatWeight(point.OneRepMax, Model.UserUnits)</td>
+                                <td>
+                                    <a asp-page="/Workouts/Details" asp-route-id="@point.WorkoutId" class="text-sm font-medium text-primary-600 transition hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-200">View workout</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    @if (Model.Trend is { HasHistory: true } chartTrend)
+    {
+        var horizons = chartTrend.Projection?.Horizons ?? new List<OneRepMaxProjectionPoint>();
+        <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+        <script>
+            const oneRepMaxLabels = @Html.Raw(JsonSerializer.Serialize(
+                chartTrend.Points.Select(point => point.Label)
+                    .Concat(horizons.Select(horizon => horizon.Label))));
+            const oneRepMaxHistory = @Html.Raw(JsonSerializer.Serialize(
+                chartTrend.Points.Select(point => (decimal?)UnitConverter.ToDisplayWeight(point.OneRepMax, Model.UserUnits))
+                    .Concat(Enumerable.Repeat((decimal?)null, horizons.Count))));
+            const oneRepMaxPersonalBests = @Html.Raw(JsonSerializer.Serialize(
+                chartTrend.Points.Select(point => point.IsPersonalBest ? (decimal?)UnitConverter.ToDisplayWeight(point.OneRepMax, Model.UserUnits) : null)
+                    .Concat(Enumerable.Repeat((decimal?)null, horizons.Count))));
+            // The projected series repeats the last real point so the dashed line starts where the history ends.
+            const oneRepMaxProjection = @Html.Raw(JsonSerializer.Serialize(
+                horizons.Count == 0
+                    ? Enumerable.Empty<decimal?>()
+                    : Enumerable.Repeat((decimal?)null, chartTrend.Points.Count - 1)
+                        .Append(UnitConverter.ToDisplayWeight(chartTrend.Points[^1].OneRepMax, Model.UserUnits))
+                        .Concat(horizons.Select(horizon => (decimal?)UnitConverter.ToDisplayWeight(horizon.OneRepMax, Model.UserUnits)))));
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const axisColor = isDarkMode ? '#cbd5e1' : '#475569';
+            const gridColor = isDarkMode ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.25)';
+
+            const oneRepMaxContext = document.getElementById('oneRepMaxTrendChart');
+            if (oneRepMaxContext) {
+                new Chart(oneRepMaxContext, {
+                    type: 'line',
+                    data: {
+                        labels: oneRepMaxLabels,
+                        datasets: [
+                            {
+                                label: 'Estimated 1RM',
+                                data: oneRepMaxHistory,
+                                borderColor: 'rgba(14, 165, 233, 1)',
+                                backgroundColor: 'rgba(14, 165, 233, 0.18)',
+                                fill: true,
+                                tension: 0.35
+                            },
+                            {
+                                label: 'Projected',
+                                data: oneRepMaxProjection,
+                                borderColor: 'rgba(139, 92, 246, 0.9)',
+                                borderDash: [6, 6],
+                                pointRadius: 3,
+                                fill: false,
+                                tension: 0.2
+                            },
+                            {
+                                label: 'New best',
+                                data: oneRepMaxPersonalBests,
+                                showLine: false,
+                                pointRadius: 6,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                                pointBorderColor: 'rgba(255, 255, 255, 0.95)',
+                                pointBorderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: { color: axisColor },
+                                grid: { color: gridColor }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                ticks: { color: axisColor },
+                                grid: { color: gridColor }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: axisColor } }
+                        }
+                    }
+                });
+            }
+        </script>
+    }
+}

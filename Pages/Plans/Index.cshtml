@@ -1,0 +1,115 @@
+@page
+@model FitTracker.Pages.Plans.IndexModel
+@{
+    ViewData["Title"] = "Workout Plans";
+
+    // Every part of a prescription is optional, so the chip shows whichever parts were declared:
+    // "3 × 10", "45s", "5 km", or a combination. Distance is stored canonically and converted here.
+    string Prescription(WorkoutPlanExercise exercise)
+    {
+        var parts = new List<string>();
+
+        if (exercise.TargetSets.HasValue && exercise.TargetReps.HasValue)
+            parts.Add($"{exercise.TargetSets} × {exercise.TargetReps}");
+        else if (exercise.TargetSets.HasValue)
+            parts.Add($"{exercise.TargetSets} sets");
+        else if (exercise.TargetReps.HasValue)
+            parts.Add($"{exercise.TargetReps} reps");
+
+        if (exercise.TargetDurationSeconds.HasValue)
+            parts.Add(UnitConverter.FormatDuration(exercise.TargetDurationSeconds));
+
+        if (exercise.TargetDistance.HasValue)
+            parts.Add(UnitConverter.FormatDistance(exercise.TargetDistance, Model.UserUnits));
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : "No target";
+    }
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Workout plans</p>
+                <h1 class="page-title">What your workouts are performed from.</h1>
+                <p class="page-description">A plan is the recipe for a session: an ordered list of exercises with the targets you are aiming at. Build one from templates, individual exercises, or both — then start a workout from it and record what you actually did.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Plans/Create" class="btn btn-primary">Create plan</a>
+                <a asp-page="/Templates/Index" class="btn btn-secondary">Browse templates</a>
+            </div>
+        </div>
+    </section>
+
+    @if (Model.Plans.Any())
+    {
+        <div class="grid gap-6 xl:grid-cols-2">
+            @foreach (var plan in Model.Plans)
+            {
+                var orderedExercises = plan.Exercises.OrderBy(pe => pe.Order).ToList();
+                <section class="surface-card">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="chip @(plan.IsActive ? "chip-success" : string.Empty)">@(plan.IsActive ? "Active" : "Retired")</span>
+                                <span class="chip">@orderedExercises.Count exercise@(orderedExercises.Count == 1 ? string.Empty : "s")</span>
+                            </div>
+                            <h2 class="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@plan.Name</h2>
+                            @if (!string.IsNullOrWhiteSpace(plan.Description))
+                            {
+                                <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">@plan.Description</p>
+                            }
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            @* A retired plan cannot guide a workout, so it offers reactivation instead
+                               of a start action (WDM-16, WDM-UI-03). *@
+                            @if (plan.IsActive)
+                            {
+                                <a asp-page="/Workouts/Start" asp-route-planId="@plan.Id" class="btn btn-primary">Start workout</a>
+                            }
+                            <a asp-page="/Plans/Create" asp-route-id="@plan.Id" class="btn btn-secondary">Edit</a>
+                            <form method="post" asp-page-handler="SetActive" asp-route-id="@plan.Id" asp-route-isActive="@(!plan.IsActive)">
+                                <button type="submit" class="btn btn-secondary">@(plan.IsActive ? "Deactivate" : "Reactivate")</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 space-y-3">
+                        @foreach (var exercise in orderedExercises.Take(4))
+                        {
+                            <div class="rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="font-semibold text-slate-950 dark:text-white">@exercise.Order. @exercise.Exercise.Name</p>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">@exercise.Exercise.MuscleGroups · @exercise.Exercise.Equipment</p>
+                                    </div>
+                                    <span class="chip">@Prescription(exercise)</span>
+                                </div>
+                            </div>
+                        }
+
+                        @if (orderedExercises.Count > 4)
+                        {
+                            <p class="text-sm text-slate-500 dark:text-slate-400">+ @(orderedExercises.Count - 4) more exercise@(orderedExercises.Count - 4 == 1 ? string.Empty : "s")</p>
+                        }
+                    </div>
+
+                    @* Deleting is a soft delete: workouts performed from this plan keep pointing at it,
+                       so their guidance still resolves (WDM-17). *@
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@plan.Id" class="mt-6">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this plan? Workouts already performed from it are kept.')">Delete plan</button>
+                    </form>
+                </section>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <h2 class="text-xl font-semibold text-slate-950 dark:text-white">No plans yet</h2>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Templates are the reusable groupings you build from; a plan is what you actually train to. Assemble a warm-up and a main block into one plan, and every session starts a click away.</p>
+            <a asp-page="/Plans/Create" class="btn btn-primary mt-5">Create your first plan</a>
+        </div>
+    }
+</div>

@@ -1,0 +1,321 @@
+@model FitTracker.Pages.Workouts.StartModel
+@*
+    The whole of the workout form, so that every action on it can swap it in place. Logging a set
+    changes the set table, the rows still on offer and the progress strip at once; answering for an
+    exercise changes which exercise is on screen — one region, replaced whole, rather than a page
+    reload that would drop the rest timer's Alpine state and jump the scroll position.
+
+    Rendered on its own by the page's handlers when the request came from htmx (WDM-UI-20). The plain
+    submit buttons and links underneath still work when it did not.
+*@
+@{
+    var workout = Model.Workout;
+    var isEditable = workout != null && !workout.IsCompleted;
+    var total = Model.WorkoutExercises.Count;
+    var allAnswered = Model.FocusMode && Model.FocusedExercise == null;
+    var answeredPercent = total > 0 ? (int)Math.Round(Model.AddressedCount * 100d / total) : 0;
+}
+@* Everything inside inherits the target and swap, so an action only declares its own hx-post or
+   hx-get. show:top brings the top of the form — the progress readout and whatever exercise the flow
+   landed on — back into view, which on a phone is the whole screen. *@
+<form id="workout-form"
+      method="post"
+      class="space-y-8"
+      hx-target="#workout-form"
+      hx-swap="outerHTML@(Model.FocusMode ? " show:top" : string.Empty)">
+    <input type="hidden" asp-for="WorkoutId" />
+    @* The flow's position rides along with every post, so each handler can put the user back where
+       they were — or move them on — without the mode being lost to a redirect. *@
+    @if (Model.ListMode)
+    {
+        <input type="hidden" name="list" value="true" />
+    }
+    else if (Model.FocusedId.HasValue)
+    {
+        <input type="hidden" name="at" value="@Model.FocusedId" />
+    }
+
+    @if (isEditable && (!Model.FocusMode || total == 0))
+    {
+        <section class="surface-card">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Add exercise</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Build today's lineup</h2>
+                </div>
+                <span class="chip">@total exercise@(total == 1 ? string.Empty : "s")</span>
+            </div>
+
+            <partial name="~/Pages/Shared/Components/_ExercisePicker.cshtml" model="Model.ExercisesByCategory" />
+        </section>
+    }
+
+    @if (total > 0)
+    {
+        @if (Model.FocusMode)
+        {
+            <section class="surface-card">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="page-eyebrow">@(Model.Plan?.Name ?? "Guided flow")</p>
+                        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                            @(allAnswered ? "Everything answered for" : $"Exercise {Model.FocusedPosition} of {total}")
+                        </h2>
+                    </div>
+                    <span class="chip @(allAnswered ? "chip-success" : "chip-primary")">@Model.AddressedCount of @total done</span>
+                </div>
+
+                <div class="mt-5 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+                     role="progressbar"
+                     aria-label="Exercises answered for"
+                     aria-valuemin="0"
+                     aria-valuemax="@total"
+                     aria-valuenow="@Model.AddressedCount">
+                    <div class="h-full rounded-full bg-primary-500 transition-all duration-300" style="width: @answeredPercent%"></div>
+                </div>
+
+                @* The flow proposes an order; it never imposes one (WDM-UI-08). Every exercise stays
+                   one tap away, coloured by what has been recorded against it. *@
+                <div class="mt-5 flex gap-2 overflow-x-auto pb-1">
+                    @for (int i = 0; i < total; i++)
+                    {
+                        var step = Model.WorkoutExercises[i];
+                        var isCurrent = step.Id == Model.FocusedId;
+                        var stepState = isCurrent ? "flow-step-current"
+                            : step.Status == WorkoutExerciseStatuses.Skipped ? "flow-step-skipped"
+                            : GuidedWorkoutFlow.IsAddressed(step) ? "flow-step-done"
+                            : string.Empty;
+
+                        <a asp-page="/Workouts/Start"
+                           asp-route-id="@Model.WorkoutId"
+                           asp-route-at="@step.Id"
+                           hx-get="?id=@Model.WorkoutId&amp;at=@step.Id"
+                           hx-push-url="true"
+                           class="flow-step @stepState"
+                           title="@step.Exercise.Name"
+                           aria-current="@(isCurrent ? "step" : null)">@(i + 1)</a>
+                    }
+                </div>
+            </section>
+
+            @if (Model.FocusedExercise != null)
+            {
+                Model.ProgressiveOverloadSuggestions.TryGetValue(Model.FocusedExercise.ExerciseId, out var focusedSuggestion);
+                Model.PlanGuidance.TryGetValue(Model.FocusedExercise.Id, out var focusedPlanned);
+
+                <partial name="~/Pages/Shared/Components/_ExerciseLogCard.cshtml"
+                         model="new ExerciseLogCardModel {
+                             WorkoutExercise = Model.FocusedExercise,
+                             Position = Model.FocusedPosition,
+                             UserUnits = Model.UserUnits,
+                             IsWorkoutCompleted = !isEditable,
+                             Focused = true,
+                             Suggestion = focusedSuggestion,
+                             Planned = focusedPlanned
+                         }" />
+
+                <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                    @if (Model.PreviousExerciseId.HasValue)
+                    {
+                        <a asp-page="/Workouts/Start"
+                           asp-route-id="@Model.WorkoutId"
+                           asp-route-at="@Model.PreviousExerciseId"
+                           hx-get="?id=@Model.WorkoutId&amp;at=@Model.PreviousExerciseId"
+                           hx-push-url="true"
+                           class="btn btn-secondary">← Previous exercise</a>
+                    }
+                    else
+                    {
+                        <span class="hidden sm:block"></span>
+                    }
+                    @if (Model.NextExerciseId.HasValue)
+                    {
+                        <a asp-page="/Workouts/Start"
+                           asp-route-id="@Model.WorkoutId"
+                           asp-route-at="@Model.NextExerciseId"
+                           hx-get="?id=@Model.WorkoutId&amp;at=@Model.NextExerciseId"
+                           hx-push-url="true"
+                           class="btn btn-secondary">Next exercise →</a>
+                    }
+                </div>
+            }
+            else
+            {
+                <section class="surface-card">
+                    <span class="chip chip-success">Nothing left outstanding</span>
+                    <h2 class="mt-5 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">That's the lot.</h2>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Every exercise has been done or skipped. Step back into any of them, or wrap up below.</p>
+
+                    <ul class="mt-6 space-y-2">
+                        @for (int i = 0; i < total; i++)
+                        {
+                            var done = Model.WorkoutExercises[i];
+                            var wasSkipped = done.Status == WorkoutExerciseStatuses.Skipped;
+
+                            <li>
+                                <a asp-page="/Workouts/Start"
+                                   asp-route-id="@Model.WorkoutId"
+                                   asp-route-at="@done.Id"
+                                   hx-get="?id=@Model.WorkoutId&amp;at=@done.Id"
+                                   hx-push-url="true"
+                                   class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 px-4 py-3 text-sm font-medium text-slate-700 hover:border-primary-200 dark:border-slate-800 dark:text-slate-200">
+                                    <span>@(i + 1). @done.Exercise.Name</span>
+                                    @if (wasSkipped)
+                                    {
+                                        <span class="chip chip-danger">Skipped</span>
+                                    }
+                                    else if (done.Sets.Any())
+                                    {
+                                        <span class="chip chip-success">@done.Sets.Count set@(done.Sets.Count == 1 ? string.Empty : "s")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip chip-success">Felt @done.Status.ToLowerInvariant()</span>
+                                    }
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+
+            @if (isEditable)
+            {
+                @* Open while the workout is barely a workout: building an ad-hoc session one
+                   exercise at a time should not mean opening a panel each time. *@
+                <details class="surface-card" open="@(total <= 1 ? "open" : null)">
+                    <summary class="cursor-pointer text-base font-semibold text-slate-950 dark:text-white">Add an exercise that isn't in the lineup</summary>
+                    <div class="mt-6">
+                        <partial name="~/Pages/Shared/Components/_ExercisePicker.cshtml" model="Model.ExercisesByCategory" />
+                    </div>
+                </details>
+            }
+        }
+        else
+        {
+            <div class="space-y-6">
+                @for (int i = 0; i < total; i++)
+                {
+                    var workoutExercise = Model.WorkoutExercises[i];
+                    Model.ProgressiveOverloadSuggestions.TryGetValue(workoutExercise.ExerciseId, out var suggestion);
+                    Model.PlanGuidance.TryGetValue(workoutExercise.Id, out var planned);
+
+                    <partial name="~/Pages/Shared/Components/_ExerciseLogCard.cshtml"
+                             model="new ExerciseLogCardModel {
+                                 WorkoutExercise = workoutExercise,
+                                 Position = i + 1,
+                                 UserUnits = Model.UserUnits,
+                                 IsWorkoutCompleted = !isEditable,
+                                 Focused = false,
+                                 Suggestion = suggestion,
+                                 Planned = planned
+                             }" />
+                }
+            </div>
+        }
+
+        @if (isEditable)
+        {
+            @* Stays rendered in both modes: the notes textarea is where WorkoutNotes is posted from,
+               so hiding the section would silently blank the notes on completion. In the flow it
+               sits below everything, which is far enough out of the way. *@
+            <section class="surface-card space-y-6">
+                <div>
+                    <p class="page-eyebrow">Finish up</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Wrap up this workout</h2>
+                </div>
+
+                <div>
+                    <label class="input-label" asp-for="WorkoutNotes">Workout notes</label>
+                    <textarea asp-for="WorkoutNotes"
+                              class="input"
+                              rows="4"
+                              placeholder="How did this session feel? Anything worth remembering?"
+                              x-init="restoreElementValue($el)"
+                              x-on:input="saveElementValue($el)"></textarea>
+                    <p class="mt-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Progress saves automatically on this device.</p>
+                </div>
+
+                @* Both buttons stay ordinary submits carrying their handler, and only have their
+                   default prevented once Alpine is there to open the dialog instead — so with no
+                   JavaScript they still finish the workout, just without the second look. *@
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <button type="submit"
+                            asp-page-handler="CompleteWorkout"
+                            class="btn btn-primary flex-1"
+                            x-on:click.prevent="$refs.confirmComplete.showModal()">
+                        Complete workout
+                    </button>
+                    <button type="submit"
+                            asp-page-handler="CancelWorkout"
+                            class="btn btn-danger"
+                            x-on:click.prevent="$refs.confirmCancel.showModal()">
+                        Cancel workout
+                    </button>
+                </div>
+
+                @* <dialog> rather than a div: showModal() centres it in the viewport, dims the page
+                   behind it, traps focus and closes on Escape without any of that being written here.
+                   Both sit inside the form, so their confirm button is an ordinary submit. *@
+                <dialog x-ref="confirmComplete" class="modal-card" aria-labelledby="confirm-complete-title">
+                    <h2 id="confirm-complete-title" class="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">Complete this workout?</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        @if (Model.AddressedCount < total)
+                        {
+                            @:@(total - Model.AddressedCount) of @total exercises have not been done or skipped. They stay in the record as untouched.
+                        }
+                        else
+                        {
+                            @:It moves to your history, and counts towards records, achievements and challenges.
+                        }
+                    </p>
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+                        <button type="submit"
+                                asp-page-handler="CompleteWorkout"
+                                class="btn btn-primary flex-1"
+                                x-on:click="clearWorkoutState()">
+                            Complete workout
+                        </button>
+                        <button type="button" class="btn btn-secondary" x-on:click="$refs.confirmComplete.close()">Keep going</button>
+                    </div>
+                </dialog>
+
+                <dialog x-ref="confirmCancel" class="modal-card" aria-labelledby="confirm-cancel-title">
+                    <h2 id="confirm-cancel-title" class="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">Discard this workout?</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Everything logged in this session goes, including any sets already recorded. This cannot be undone.
+                    </p>
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+                        <button type="submit"
+                                asp-page-handler="CancelWorkout"
+                                class="btn btn-danger flex-1"
+                                x-on:click="clearWorkoutState()">
+                            Discard workout
+                        </button>
+                        <button type="button" class="btn btn-secondary" x-on:click="$refs.confirmCancel.close()">Keep it</button>
+                    </div>
+                </dialog>
+            </section>
+        }
+        else
+        {
+            <section class="surface-card text-center">
+                <span class="chip chip-success">Workout complete</span>
+                <h2 class="mt-5 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Nice work.</h2>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Duration: @workout!.Duration minutes</p>
+                <div class="mt-6 flex justify-center gap-3">
+                    <a asp-page="/Workouts/History" class="btn btn-primary">View history</a>
+                    <a asp-page="/Workouts/Start" class="btn btn-secondary">Log another workout</a>
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <svg class="mb-4 h-14 w-14 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Ready when you are</h3>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Choose your first exercise to open the quick logging flow.</p>
+        </div>
+    }
+</form>

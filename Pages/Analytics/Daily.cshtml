@@ -60,13 +60,14 @@
                         <div class="mt-5 space-y-3">
                             @foreach (var we in workout.WorkoutExercises.OrderBy(x => x.Order))
                             {
+                                // Stored weights are canonical, so the sum stays canonical and is converted once when rendered.
                                 var totalVolume = we.Sets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0));
                                 <div class="flex flex-col gap-2 rounded-[1.25rem] border border-slate-200/70 bg-white/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-950/50">
                                     <div>
                                         <p class="font-medium text-slate-950 dark:text-white">@we.Exercise.Name</p>
                                         <p class="text-sm text-slate-500 dark:text-slate-400">@we.Sets.Count sets · @we.Sets.Sum(s => s.Reps ?? 0) reps</p>
                                     </div>
-                                    <div class="text-sm font-semibold text-primary-600 dark:text-primary-300">@totalVolume.ToString("N0") lbs volume</div>
+                                    <div class="text-sm font-semibold text-primary-600 dark:text-primary-300">@UnitConverter.FormatVolume(totalVolume, Model.UserUnits) volume</div>
                                 </div>
                             }
                         </div>

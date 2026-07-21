@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +14,7 @@ public class IndexModel : PageModel
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAnalyticsService _analyticsService;
-    private readonly ITemplateService _templateService;
+    private readonly IWorkoutPlanService _workoutPlanService;
     private readonly IWorkoutSuggestionService _workoutSuggestionService;
     private readonly IChallengeService _challengeService;
     private readonly ILogger<IndexModel> _logger;
@@ -23,7 +23,7 @@ public class IndexModel : PageModel
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAnalyticsService analyticsService,
-        ITemplateService templateService,
+        IWorkoutPlanService workoutPlanService,
         IWorkoutSuggestionService workoutSuggestionService,
         IChallengeService challengeService,
         ILogger<IndexModel> logger)
@@ -31,7 +31,7 @@ public class IndexModel : PageModel
         _context = context;
         _userManager = userManager;
         _analyticsService = analyticsService;
-        _templateService = templateService;
+        _workoutPlanService = workoutPlanService;
         _workoutSuggestionService = workoutSuggestionService;
         _challengeService = challengeService;
         _logger = logger;
@@ -42,7 +42,7 @@ public class IndexModel : PageModel
     public List<Workout> RecentWorkouts { get; set; } = new();
     public Workout? TodaysWorkout { get; set; }
     public DailySummary? TodaysSummary { get; set; }
-    public List<WorkoutTemplate> ActiveTemplates { get; set; } = new();
+    public List<WorkoutPlan> ActivePlans { get; set; } = new();
     public WorkoutSuggestionSummary WorkoutSuggestions { get; set; } = new();
     public List<ChallengeProgressItem> ActiveChallenges { get; set; } = new();
 
@@ -80,7 +80,7 @@ public class IndexModel : PageModel
 
         // Get today's summary
         TodaysSummary = await _analyticsService.GetDailySummaryAsync(userId, today);
-        ActiveTemplates = await _templateService.GetActiveTemplatesAsync(userId, 3);
+        ActivePlans = await _workoutPlanService.GetActivePlansAsync(userId, 3);
         WorkoutSuggestions = await _workoutSuggestionService.GetSuggestionsAsync(userId);
         ActiveChallenges = await _challengeService.GetActiveChallengesAsync(userId);
     }

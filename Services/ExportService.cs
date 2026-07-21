@@ -15,6 +15,12 @@ public interface IExportService
     Task<ExportFileResult> ExportPersonalRecordsCsvAsync(string userId, DateTime? startDate, DateTime? endDate);
 }
 
+/// <summary>
+/// Builds the download files. A file has no view to convert on its behalf, so this is one of the
+/// two places a service turns canonical measurements into the user's display unit itself. The unit
+/// is named in the CSV column header and in a JSON field beside the value rather than appended to
+/// every number, so the exports stay parseable — a bare number in the wrong unit is worse than none.
+/// </summary>
 public class ExportService : IExportService
 {
     private const string CsvContentType = "text/csv; charset=utf-8";
@@ -29,6 +35,8 @@ public class ExportService : IExportService
 
     public async Task<ExportFileResult> ExportWorkoutsCsvAsync(string userId, DateTime? startDate, DateTime? endDate)
     {
+        var displayUnit = await DisplayUnits.ForUserAsync(_context, userId);
+
         var workouts = await BuildWorkoutQuery(userId, startDate, endDate)
             .Include(workout => workout.WorkoutExercises)
                 .ThenInclude(workoutExercise => workoutExercise.Exercise)
@@ -52,7 +60,7 @@ public class ExportService : IExportService
             "ExerciseNotes",
             "SetNumber",
             "Reps",
-            "Weight",
+            $"Weight ({UnitConverter.WeightUnitLabel(displayUnit)})",
             "SetDurationSeconds",
             "RestTimeSeconds",
             "RPE");
@@ -130,7 +138,7 @@ public class ExportService : IExportService
                         workoutExercise.Notes,
                         set.SetNumber.ToString(CultureInfo.InvariantCulture),
                         FormatNullableInt(set.Reps),
-                        FormatNullableDecimal(set.Weight),
+                        FormatNullableDecimal(UnitConverter.ToDisplayWeight(set.Weight, displayUnit)),
                         FormatNullableInt(set.Duration),
                         FormatNullableInt(set.RestTime),
                         FormatNullableInt(set.RPE));
@@ -143,6 +151,8 @@ public class ExportService : IExportService
 
     public async Task<ExportFileResult> ExportWorkoutsJsonAsync(string userId, DateTime? startDate, DateTime? endDate)
     {
+        var displayUnit = await DisplayUnits.ForUserAsync(_context, userId);
+
         var workouts = await BuildWorkoutQuery(userId, startDate, endDate)
             .Include(workout => workout.WorkoutExercises)
                 .ThenInclude(workoutExercise => workoutExercise.Exercise)
@@ -184,8 +194,10 @@ public class ExportService : IExportService
                             set.Id,
                             set.SetNumber,
                             set.Reps,
-                            set.Weight,
+                            Weight = UnitConverter.ToDisplayWeight(set.Weight, displayUnit),
+                            WeightUnit = UnitConverter.WeightUnitLabel(displayUnit),
                             set.Duration,
+                            DurationUnit = "seconds",
                             set.RestTime,
                             set.RPE,
                             set.CreatedAt
@@ -205,6 +217,8 @@ public class ExportService : IExportService
 
     public async Task<ExportFileResult> ExportMeasurementsCsvAsync(string userId, DateTime? startDate, DateTime? endDate)
     {
+        var displayUnit = await DisplayUnits.ForUserAsync(_context, userId);
+
         var measurements = await BuildMeasurementQuery(userId, startDate, endDate)
             .OrderBy(measurement => measurement.Date)
             .ThenBy(measurement => measurement.Id)
@@ -214,7 +228,7 @@ public class ExportService : IExportService
         AppendCsvRow(builder,
             "MeasurementId",
             "Date",
-            "Weight",
+            $"Weight ({UnitConverter.WeightUnitLabel(displayUnit)})",
             "BodyFatPercentage",
             "Chest",
             "Waist",
@@ -227,7 +241,7 @@ public class ExportService : IExportService
             AppendCsvRow(builder,
                 measurement.Id.ToString(CultureInfo.InvariantCulture),
                 FormatDate(measurement.Date),
-                FormatNullableDecimal(measurement.Weight),
+                FormatNullableDecimal(UnitConverter.ToDisplayWeight(measurement.Weight, displayUnit)),
                 FormatNullableDecimal(measurement.BodyFatPercentage),
                 FormatNullableDecimal(measurement.Chest),
                 FormatNullableDecimal(measurement.Waist),
@@ -241,6 +255,8 @@ public class ExportService : IExportService
 
     public async Task<ExportFileResult> ExportPersonalRecordsCsvAsync(string userId, DateTime? startDate, DateTime? endDate)
     {
+        var displayUnit = await DisplayUnits.ForUserAsync(_context, userId);
+
         var records = await BuildPersonalRecordQuery(userId, startDate, endDate)
             .Include(record => record.Exercise)
             .OrderBy(record => record.Date)
@@ -252,9 +268,9 @@ public class ExportService : IExportService
             "PersonalRecordId",
             "Date",
             "Exercise",
-            "Weight",
+            $"Weight ({UnitConverter.WeightUnitLabel(displayUnit)})",
             "Reps",
-            "OneRepMax",
+            $"OneRepMax ({UnitConverter.WeightUnitLabel(displayUnit)})",
             "WorkoutId");
 
         foreach (var record in records)
@@ -263,9 +279,9 @@ public class ExportService : IExportService
                 record.Id.ToString(CultureInfo.InvariantCulture),
                 FormatDateTime(record.Date),
                 record.Exercise.Name,
-                record.Weight.ToString(CultureInfo.InvariantCulture),
+                UnitConverter.ToDisplayWeight(record.Weight, displayUnit).ToString(CultureInfo.InvariantCulture),
                 record.Reps.ToString(CultureInfo.InvariantCulture),
-                record.OneRepMax.ToString(CultureInfo.InvariantCulture),
+                UnitConverter.ToDisplayWeight(record.OneRepMax, displayUnit).ToString(CultureInfo.InvariantCulture),
                 record.WorkoutId.ToString(CultureInfo.InvariantCulture));
         }
 

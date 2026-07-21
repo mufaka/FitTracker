@@ -6,10 +6,25 @@ public class WorkoutTemplate
 {
     public int Id { get; set; }
 
-    [Required]
-    public string UserId { get; set; } = string.Empty;
+    /// <summary>
+    /// The owner, or <c>null</c> for a built-in template seeded by the application and visible to
+    /// every user (WDM-04). This is the only entity in the model with two legitimate read predicates,
+    /// so reads that mean to include built-ins say so explicitly rather than repeating a null check.
+    /// </summary>
+    public string? UserId { get; set; }
 
-    public virtual ApplicationUser User { get; set; } = null!;
+    public virtual ApplicationUser? User { get; set; }
+
+    /// <summary>
+    /// Stable identity for a seeded catalog entry, <c>null</c> for anything a user made (WDM-41).
+    /// Seeding inserts by this key, so a template can be added to the catalog later without
+    /// disturbing the entries already in an existing database.
+    /// </summary>
+    [StringLength(100)]
+    public string? CatalogKey { get; set; }
+
+    /// <summary>Whether this template was seeded rather than created by a user.</summary>
+    public bool IsBuiltIn => UserId == null;
 
     [Required]
     [StringLength(100)]

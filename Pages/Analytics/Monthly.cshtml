@@ -25,12 +25,14 @@
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div class="metric-card">
             <p class="metric-label">Latest body weight</p>
-            <p class="metric-value text-primary-600 dark:text-primary-300">@(Model.Summary.LatestBodyWeight?.ToString("0.##") ?? "—")</p>
+            <p class="metric-value text-primary-600 dark:text-primary-300">@(UnitConverter.FormatWeight(Model.Summary.LatestBodyWeight, Model.UserUnits) is { Length: > 0 } latestBodyWeight ? latestBodyWeight : "—")</p>
             <p class="metric-meta">Latest measurement this period</p>
         </div>
         <div class="metric-card">
             <p class="metric-label">Weight change</p>
-            <p class="metric-value @(Model.Summary.BodyWeightChange >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500 dark:text-red-300")">@(Model.Summary.BodyWeightChange?.ToString("+0.##;-0.##;0") ?? "—")</p>
+            @* The sign is what this card is about, so the magnitude is converted and the +/- formatting kept. *@
+            @{ var bodyWeightChange = UnitConverter.ToDisplayWeight(Model.Summary.BodyWeightChange, Model.UserUnits); }
+            <p class="metric-value @(Model.Summary.BodyWeightChange >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500 dark:text-red-300")">@(bodyWeightChange.HasValue ? $"{bodyWeightChange.Value:+0.##;-0.##;0} {UnitConverter.WeightUnitLabel(Model.UserUnits)}" : "—")</p>
             <p class="metric-meta">Change during the selected month</p>
         </div>
         <div class="metric-card">
@@ -105,11 +107,11 @@
             <div class="space-y-4">
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total volume</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.TotalVolume.ToString("N0")</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(Model.Summary.TotalVolume, Model.UserUnits)</p>
                 </div>
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Previous month volume</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@Model.Summary.PreviousPeriodVolume.ToString("N0")</p>
+                    <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(Model.Summary.PreviousPeriodVolume, Model.UserUnits)</p>
                 </div>
                 <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total duration</p>
@@ -139,7 +141,7 @@
                 {
                     <div class="rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
                         <p class="text-sm font-medium text-slate-500 dark:text-slate-400">@item.MuscleGroup</p>
-                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@item.Volume.ToString("N0")</p>
+                        <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatVolume(item.Volume, Model.UserUnits)</p>
                         <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@item.ExerciseCount logged exercise entry@(item.ExerciseCount == 1 ? string.Empty : "ies")</p>
                     </div>
                 }
@@ -184,9 +186,9 @@
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const monthlyLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Label)));
-        const monthlyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => point.Volume)));
+        const monthlyVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.DailyData.Select(point => UnitConverter.ToDisplayVolume(point.Volume, Model.UserUnits))));
         const monthlyBodyWeightLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Label)));
-        const monthlyBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Value)));
+        const monthlyBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => UnitConverter.ToDisplayWeight(point.Value, Model.UserUnits))));
 
         const monthlyContext = document.getElementById('monthlyVolumeChart');
         if (monthlyContext) {
@@ -196,7 +198,7 @@
                     labels: monthlyLabels,
                     datasets: [
                         {
-                            label: 'Daily volume',
+                            label: 'Daily volume (@(UnitConverter.WeightUnitLabel(Model.UserUnits)))',
                             data: monthlyVolumes,
                             borderColor: 'rgba(99, 102, 241, 1)',
                             backgroundColor: 'rgba(99, 102, 241, 0.18)',
@@ -226,7 +228,7 @@
                     labels: monthlyBodyWeightLabels,
                     datasets: [
                         {
-                            label: 'Body weight',
+                            label: 'Body weight (@(UnitConverter.WeightUnitLabel(Model.UserUnits)))',
                             data: monthlyBodyWeights,
                             borderColor: 'rgba(16, 185, 129, 1)',
                             backgroundColor: 'rgba(16, 185, 129, 0.16)',

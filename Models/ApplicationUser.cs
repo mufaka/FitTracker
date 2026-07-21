@@ -11,6 +11,7 @@ public class ApplicationUser : IdentityUser
     
     public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
     public virtual ICollection<WorkoutTemplate> WorkoutTemplates { get; set; } = new List<WorkoutTemplate>();
+    public virtual ICollection<WorkoutPlan> WorkoutPlans { get; set; } = new List<WorkoutPlan>();
     public virtual ICollection<PersonalRecord> PersonalRecords { get; set; } = new List<PersonalRecord>();
     public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
     public virtual ICollection<UserChallenge> UserChallenges { get; set; } = new List<UserChallenge>();

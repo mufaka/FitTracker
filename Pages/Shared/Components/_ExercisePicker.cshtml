@@ -1,0 +1,32 @@
+@model Dictionary<string, List<Exercise>>
+@*
+    Adding something the plan does not name (WDM-UI-08). Posts as part of the page-wide workout form,
+    so it works the same whether the screen is showing the whole lineup or one exercise at a time.
+*@
+<div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+    <div>
+        <label class="input-label" for="SelectedExerciseId">Exercise</label>
+        <select id="SelectedExerciseId"
+                name="SelectedExerciseId"
+                class="input"
+                x-init="restoreElementValue($el)"
+                x-on:change="saveElementValue($el)">
+            <option value="">Select an exercise...</option>
+            @foreach (var category in Model)
+            {
+                <optgroup label="@category.Key">
+                    @foreach (var exercise in category.Value)
+                    {
+                        <option value="@exercise.Id">@exercise.Name (@exercise.Equipment)</option>
+                    }
+                </optgroup>
+            }
+        </select>
+    </div>
+    <button type="submit"
+            asp-page-handler="AddExercise"
+            hx-post="?handler=AddExercise"
+            hx-include="closest form"
+            hx-disabled-elt="this"
+            class="btn btn-primary md:min-w-40">Add exercise</button>
+</div>

@@ -7,10 +7,13 @@ FitTracker is a comprehensive fitness tracking application that helps users plan
 - **.NET 10** - ASP.NET Core with Razor Pages
 - **SQLite** - Database with Entity Framework Core
 - **Microsoft Identity** - Authentication and user management
-- **Tailwind CSS 4** - Styling framework
+- **Tailwind CSS 4** - Styling framework, configured entirely in CSS
 - **Alpine.js** - Client-side interactivity
 - **HTMX** - Dynamic partial page updates
+- **Chart.js** - Analytics and progress charts
+- **QuestPDF / ImageSharp** - PDF export and progress photo processing
 - **Dark Mode** - Full support with user preference persistence
+- **Installable** - Web app manifest, so it can be added to a phone home screen
 
 ## Prerequisites
 
@@ -72,44 +75,51 @@ dotnet run
 
 Or press F5 in Visual Studio.
 
-The application will be available at:
-- **HTTP**: http://localhost:5000
-- **HTTPS**: https://localhost:5001
+The application will be available at http://localhost:5184, as configured by the
+`http` profile in `Properties/launchSettings.json`. There is no HTTPS profile;
+TLS is expected to be terminated by a reverse proxy in production.
 
 ## Project Structure
 
 ```
 FitTracker/
-├── FitTracker.slnx       # Solution file for app and tests
-├── Data/                  # Database context and migrations
-│   └── ApplicationDbContext.cs
-├── FitTracker.Tests/      # Service tests and test infrastructure
-├── Models/                # Entity models
-│   ├── ApplicationUser.cs
-│   ├── Exercise.cs
-│   ├── Workout.cs
-│   ├── WorkoutExercise.cs
-│   └── Set.cs
+├── FitTracker.slnx        # Solution file for app and tests
+├── Data/                  # Database context and seed data
+│   ├── ApplicationDbContext.cs
+│   └── DbInitializer.cs   # Seeds the exercise library and achievements
+├── Migrations/            # EF Core migrations
+├── Models/                # Entity models (exercises, workouts, sets, PRs,
+│                          # templates, measurements, photos, achievements,
+│                          # challenges)
+├── Services/              # Business logic, one service per feature area
+│                          # (analytics, workouts, PRs, achievements,
+│                          # challenges, export, photos, suggestions)
+├── TagHelpers/            # Html5ValidationTagHelper — projects DataAnnotations
+│                          # onto native HTML5 validation attributes
 ├── Pages/                 # Razor Pages
-│   ├── Shared/           # Shared layouts and partials
-│   ├── Index.cshtml      # Dashboard
+│   ├── Shared/            # Shared layouts, partials, and components
+│   ├── Index.cshtml       # Dashboard
 │   └── Error.cshtml
-├── Areas/                 # Identity pages (auto-generated)
+├── Areas/                 # Identity pages (scaffolded, then restyled)
 │   └── Identity/
-├── wwwroot/              # Static files
-│   ├── css/              # site.css (Tailwind source) -> output.css (generated)
-│   ├── js/
-│   └── lib/              # Client libs served locally (alpinejs, htmx, chartjs)
+├── FitTracker.Tests/      # Service tests and test infrastructure
+├── wwwroot/               # Static files
+│   ├── css/               # site.css (Tailwind source) -> output.css (generated)
+│   ├── js/                # site.js — client-side validation
+│   ├── icons/             # PWA and home screen icons
+│   ├── lib/               # Client libs served locally (alpinejs, htmx, chartjs)
+│   └── manifest.json      # Web app manifest
 ├── Specifications/        # Project documentation
-│   ├── Idea.md           # Project concept and features
-│   ├── Implementation.md # Implementation checklist
-│   ├── Progress.md       # Session progress summary
-│   ├── DatabaseSchema.md # Current database schema reference
+│   ├── Idea.md            # Project concept and features
+│   ├── Implementation.md  # Implementation checklist
+│   ├── Progress.md        # Session progress summary
+│   ├── DatabaseSchema.md  # Database schema reference
+│   ├── TailwindGuidelines.md # Tailwind 4 conventions for this project
 │   ├── ManualTestChecklist.md # Manual MVP validation checklist
-│   └── UserGuide.md      # End-user guide for the MVP
-├── appsettings.json      # Configuration
-├── Program.cs            # Application entry point
-└── package.json          # Node.js dependencies
+│   └── UserGuide.md       # End-user guide for the MVP
+├── appsettings.json       # Configuration
+├── Program.cs             # Application entry point
+└── package.json           # Node.js dependencies
 ```
 
 ## Database Schema
@@ -122,11 +132,28 @@ FitTracker/
 - **WorkoutExercise** - Exercises within a specific workout
 - **Set** - Individual sets (reps, weight, duration, RPE)
 
-Detailed schema documentation is available in `Specifications/DatabaseSchema.md`.
+### Tracking & Progress
+
+- **PersonalRecord** - Detected PRs per exercise, with estimated 1RM
+- **BodyMeasurement** - Weight and body measurements over time
+- **ProgressPhoto** - Photo metadata; files live outside the database
+
+### Planning
+
+- **WorkoutTemplate** / **WorkoutTemplateExercise** - Reusable session plans
+
+### Gamification
+
+- **Achievement** / **UserAchievement** - Lifetime milestones and unlocks
+- **Challenge** / **UserChallenge** - Goals measured over a window that starts
+  when the user joins
+
+Note that `Specifications/DatabaseSchema.md` currently documents only the Phase 1
+entities and predates everything from Phase 2 onwards.
 
 ## Features
 
-### Phase 1: MVP (Current)
+### Phase 1: MVP — complete
 - ✅ User authentication and registration
 - ✅ Password reset, email confirmation, and profile setup
 - ✅ Database setup with EF Core
@@ -136,25 +163,34 @@ Detailed schema documentation is available in `Specifications/DatabaseSchema.md`
 - ✅ Workout logging
 - ✅ Daily summaries
 
-### Phase 2: Enhanced Tracking (Planned)
-- Workout templates
-- Calendar view
-- Weekly/monthly summaries
-- Personal records tracking
-- Progress charts
+### Phase 2: Enhanced Tracking — complete
+- ✅ Workout templates
+- ✅ Calendar view
+- ✅ Weekly/monthly summaries
+- ✅ Personal records tracking
+- ✅ Progress charts
 
-### Phase 3: Advanced Features (Planned)
-- Body measurements
-- Progress photos
-- 1RM estimates
-- Advanced analytics
-- Data export
+### Phase 3: Advanced Features — complete
+- ✅ Body measurements
+- ✅ Progress photos
+- ✅ 1RM estimates
+- ✅ Advanced analytics
+- ✅ Data export (CSV, JSON, PDF)
+- ✅ Workout suggestions based on least-worked muscle groups
 
-### Phase 4: Polish (Planned)
-- Achievements and badges
-- Challenges
-- PWA support
-- Performance optimizations
+### Phase 4: Polish — in progress
+- ✅ Achievements and badges
+- ✅ Challenges — goals measured over a window that starts when you join
+- ✅ Mobile touch targets, audited across six device profiles
+- ✅ Installable web app manifest and icons
+- ⬜ Service worker and offline support
+- ⬜ Accessibility pass
+- ⬜ Advanced 1RM tracking, AI-based suggestions
+
+`Specifications/Implementation.md` is the authoritative checklist, including the
+items deliberately left undone and why. Two caveats on the above: Phase 1's
+features are all built, but its manual test pass is still outstanding, and the
+one remaining Phase 2 item is drag-and-drop calendar planning, marked optional.
 
 ## Development
 
@@ -202,6 +238,36 @@ Alpine.js, htmx, and Chart.js are served from `wwwroot/lib/` rather than a CDN.
 Versions are pinned in `package.json`; the `CopyClientLibs` MSBuild target
 refreshes `wwwroot/lib/` from `node_modules` on each build. To upgrade one, bump
 `package.json`, run `npm install`, and rebuild.
+
+### Form validation
+
+Validation rules are declared once, as DataAnnotations on the page models.
+`Html5ValidationTagHelper` projects them onto the native HTML5 attributes
+(`required`, `minlength`, `min`/`max`, `pattern`), so the browser enforces the
+same rules the server does without them being restated in markup.
+
+`wwwroot/js/site.js` adds a small Alpine component for the two things the
+browser cannot do alone: `[Compare]` (password confirmation) has no HTML5
+equivalent and is fed into the same native validity pipeline via
+`setCustomValidity()`, and messages are rendered into the existing
+`asp-validation-for` spans instead of unstyleable browser bubbles. The message
+text is read from the `data-val-*` attributes ASP.NET already emits, so client
+and server report failures identically. There is no jQuery in the project.
+
+### Installable web app
+
+`wwwroot/manifest.json` and `wwwroot/icons/` make the app installable to a phone
+home screen, running standalone without browser chrome. Icons are generated from
+the same lightning bolt used as the in-app logo, in both `any` and `maskable`
+purposes; iOS takes its icon from the separate `apple-touch-icon` link instead.
+
+A manifest carries only one `theme_color`, and this app's dark mode is
+class-based rather than driven by `prefers-color-scheme`, so the `theme-color`
+meta tag is updated alongside the theme toggle in `_Layout.cshtml`.
+
+There is no service worker, which is a deliberate choice — see the PWA Support
+section of `Specifications/Implementation.md`. Installing requires HTTPS in
+production; `localhost` is exempt for local testing.
 
 ### Running Tests
 
@@ -308,10 +374,9 @@ Default user preferences are set in `ApplicationUser.cs`:
 
 ### Database Issues
 
-If you encounter database issues, delete `FitTracker.db` and run:
-```bash
-dotnet ef database update
-```
+Delete `FitTracker.db` and start the app. Migrations and seeding both run at
+startup, so the database is rebuilt from scratch — there is no separate command
+to run. Note this discards all logged data.
 
 ### Tailwind CSS Not Working
 

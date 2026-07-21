@@ -27,7 +27,7 @@
         </div>
 
         <div class="surface-card">
-            <form method="post" class="space-y-5">
+            <form x-data="validatedForm" method="post" class="space-y-5">
                 <input type="hidden" asp-for="ReturnUrl" />
                 <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 

@@ -28,6 +28,8 @@
         })();
     </script>
     <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
+    @* Loads before Alpine so its alpine:init listener is registered in time. *@
+    <script defer src="~/js/site.js" asp-append-version="true"></script>
     <script defer src="~/lib/alpinejs/alpine.min.js" asp-append-version="true"></script>
     <script src="~/lib/htmx/htmx.min.js" asp-append-version="true"></script>
 </head>

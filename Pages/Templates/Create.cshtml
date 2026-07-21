@@ -19,7 +19,7 @@
         </div>
     </section>
 
-    <form method="post" class="space-y-8">
+    <form x-data="validatedForm" method="post" class="space-y-8">
         <input type="hidden" asp-for="Template.Id" />
 
         @for (var i = 0; i < Model.Template.Exercises.Count; i++)

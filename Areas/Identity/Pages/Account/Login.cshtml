@@ -35,7 +35,7 @@
             <h2 class="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Use your FitTracker account</h2>
         </div>
 
-        <form id="account" method="post" class="space-y-5">
+        <form x-data="validatedForm" id="account" method="post" class="space-y-5">
             <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 
             <div>

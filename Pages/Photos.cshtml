@@ -26,7 +26,7 @@
                 <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Add a new progress photo</h2>
             </div>
 
-            <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="space-y-5">
+            <form x-data="validatedForm" method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="space-y-5">
                 <div asp-validation-summary="ModelOnly" class="rounded-[1.25rem] border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"></div>
 
                 <div>

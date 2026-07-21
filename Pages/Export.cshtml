@@ -30,7 +30,7 @@
             <span class="chip">@(Model.HasDateFilter ? "Filtered export" : "All-time export")</span>
         </div>
 
-        <form method="get" class="space-y-5">
+        <form x-data="validatedForm" method="get" class="space-y-5">
             <div asp-validation-summary="ModelOnly" class="rounded-[1.25rem] border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"></div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">

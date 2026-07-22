@@ -1,0 +1,230 @@
+﻿@page "{id:int?}"
+@model FitTracker.Pages.Plans.CreateModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? "Edit Plan" : "Create Plan";
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Plan builder</p>
+                <h1 class="page-title">@(Model.IsEditMode ? "Refine your plan" : "Build a workout plan")</h1>
+                <p class="page-description">Apply templates to bring in whole blocks, add single exercises, then order them and set the targets you are aiming at. This is the recipe a workout is performed from.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a asp-page="/Plans/Index" class="btn btn-secondary">Back to plans</a>
+                <a asp-page="/Templates/Index" class="btn btn-secondary">Browse templates</a>
+            </div>
+        </div>
+    </section>
+
+    <form x-data="validatedForm" method="post" class="space-y-8">
+        <input type="hidden" asp-for="Plan.Id" />
+        <input type="hidden" asp-for="Plan.ConfirmedEditOfUsedPlan" />
+
+        @* The display-only fields of every row travel with the form, so removal and reordering can
+           happen on the server against dense, zero-based indices. *@
+        @for (var i = 0; i < Model.Plan.Exercises.Count; i++)
+        {
+            <input type="hidden" asp-for="Plan.Exercises[i].ExerciseId" />
+            <input type="hidden" asp-for="Plan.Exercises[i].ExerciseName" />
+            <input type="hidden" asp-for="Plan.Exercises[i].Equipment" />
+            <input type="hidden" asp-for="Plan.Exercises[i].MuscleGroups" />
+        }
+
+        @if (!ViewContext.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        }
+
+        @if (Model.RequiresEditConfirmation)
+        {
+            <section class="status-banner status-banner-warning" role="alert">
+                <h2 class="text-xl font-semibold">This plan has already been trained from</h2>
+                <p class="mt-3 max-w-3xl text-sm leading-6">
+                    Workouts reference this plan, and they read its targets as you save them — so editing it changes
+                    what those past workouts show as their intent. The sets you recorded are never affected, and no
+                    copy of the current version is kept.
+                </p>
+                <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button type="submit" asp-page-handler="ConfirmSave" class="btn btn-primary">Save the changes anyway</button>
+                    <a asp-page="/Plans/Index" class="btn btn-secondary">Leave the plan as it is</a>
+                </div>
+            </section>
+        }
+
+        <section class="surface-card space-y-6">
+            <div>
+                <p class="page-eyebrow">Plan details</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Name and status</h2>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label class="input-label" asp-for="Plan.Name">Plan name</label>
+                    <input asp-for="Plan.Name" class="input" placeholder="Monday upper body" />
+                    <span asp-validation-for="Plan.Name" class="mt-2 block text-sm text-red-500"></span>
+                </div>
+                @* A retired plan stays visible here and in the list, but cannot guide a workout (WDM-16). *@
+                <label class="checkbox-field rounded-[1.5rem] border border-slate-200/80 bg-white/70 px-4 py-3 font-medium dark:border-slate-800 dark:bg-slate-900/70">
+                    <input asp-for="Plan.IsActive" />
+                    <span>Plan is active and can start a workout</span>
+                </label>
+            </div>
+
+            <div>
+                <label class="input-label" asp-for="Plan.Description">Description</label>
+                <textarea asp-for="Plan.Description" rows="3" class="input" placeholder="What is this session for?"></textarea>
+                <span asp-validation-for="Plan.Description" class="mt-2 block text-sm text-red-500"></span>
+            </div>
+        </section>
+
+        <section class="surface-card space-y-6">
+            <div>
+                <p class="page-eyebrow">Templates</p>
+                <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Bring in a block</h2>
+                <p class="page-description">A template is a reusable grouping — a warm-up, an accessory block, a whole session. Applying one appends its exercises and their targets to the end of this plan, so you can stack several. Anything the plan already contains is kept as a second entry for you to trim or keep.</p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div>
+                    <label class="input-label" asp-for="SelectedTemplateId">Template</label>
+                    <select asp-for="SelectedTemplateId" class="input">
+                        <option value="">Select a template...</option>
+                        @if (Model.PersonalTemplates.Any())
+                        {
+                            <optgroup label="Your templates">
+                                @foreach (var template in Model.PersonalTemplates)
+                                {
+                                    <option value="@template.Id">@template.Name (@template.Exercises.Count)</option>
+                                }
+                            </optgroup>
+                        }
+                        @if (Model.BuiltInTemplates.Any())
+                        {
+                            <optgroup label="Built-in templates">
+                                @foreach (var template in Model.BuiltInTemplates)
+                                {
+                                    <option value="@template.Id">@template.Name (@template.Exercises.Count)</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        Not sure what the built-in ones contain?
+                        <a asp-page="/Templates/Catalog" class="font-medium text-primary-600 underline-offset-4 hover:underline dark:text-primary-300">Browse the catalog</a>
+                        to see every exercise and target before you apply one.
+                    </p>
+                </div>
+                <button type="submit" asp-page-handler="ApplyTemplate" class="btn btn-secondary md:min-w-40">Apply template</button>
+            </div>
+        </section>
+
+        <section class="surface-card space-y-6">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="page-eyebrow">Exercises</p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Build the lineup</h2>
+                </div>
+                <span class="chip">@Model.Plan.Exercises.Count exercise@(Model.Plan.Exercises.Count == 1 ? string.Empty : "s")</span>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div>
+                    <label class="input-label" asp-for="SelectedExerciseId">Exercise</label>
+                    <select asp-for="SelectedExerciseId" class="input">
+                        <option value="">Select an exercise...</option>
+                        @foreach (var category in Model.ExercisesByCategory)
+                        {
+                            <optgroup label="@category.Key">
+                                @foreach (var exercise in category.Value)
+                                {
+                                    <option value="@exercise.Id">@exercise.Name (@exercise.Equipment)</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
+                <button type="submit" asp-page-handler="AddExercise" class="btn btn-primary md:min-w-40">Add exercise</button>
+            </div>
+
+            @if (Model.Plan.Exercises.Any())
+            {
+                <div class="space-y-4">
+                    @for (var i = 0; i < Model.Plan.Exercises.Count; i++)
+                    {
+                        <section class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/70">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="chip chip-primary">Exercise @(i + 1)</span>
+                                        <span class="chip">@Model.Plan.Exercises[i].Equipment</span>
+                                        @* Duplicates are deliberate and are never merged away (WDM-13); the badge
+                                           only points them out so the user can decide. *@
+                                        @if (Model.DuplicateExerciseIds.Contains(Model.Plan.Exercises[i].ExerciseId))
+                                        {
+                                            <span class="chip chip-warning">Appears more than once</span>
+                                        }
+                                    </div>
+                                    <h3 class="mt-4 text-xl font-semibold text-slate-950 dark:text-white">@Model.Plan.Exercises[i].ExerciseName</h3>
+                                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.Plan.Exercises[i].MuscleGroups</p>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button type="submit" asp-page-handler="MoveUp" asp-route-index="@i" class="btn btn-secondary" disabled="@(i == 0 ? "disabled" : null)">Move up</button>
+                                    <button type="submit" asp-page-handler="MoveDown" asp-route-index="@i" class="btn btn-secondary" disabled="@(i == Model.Plan.Exercises.Count - 1 ? "disabled" : null)">Move down</button>
+                                    <button type="submit" asp-page-handler="RemoveExercise" asp-route-index="@i" class="btn btn-danger">Remove</button>
+                                </div>
+                            </div>
+
+                            @* Every target is optional: a stretch prescribes a duration and no reps,
+                               a run a distance and neither. Leave what does not apply blank.
+                               min/max come from the [Range] attributes via Html5ValidationTagHelper. *@
+                            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                <div>
+                                    <label class="input-label" asp-for="Plan.Exercises[i].TargetSets">Sets</label>
+                                    <input asp-for="Plan.Exercises[i].TargetSets" type="number" class="input" placeholder="—" />
+                                    <span asp-validation-for="Plan.Exercises[i].TargetSets" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div>
+                                    <label class="input-label" asp-for="Plan.Exercises[i].TargetReps">Reps</label>
+                                    <input asp-for="Plan.Exercises[i].TargetReps" type="number" class="input" placeholder="—" />
+                                    <span asp-validation-for="Plan.Exercises[i].TargetReps" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div>
+                                    <label class="input-label" asp-for="Plan.Exercises[i].TargetDurationSeconds">Duration (seconds)</label>
+                                    <input asp-for="Plan.Exercises[i].TargetDurationSeconds" type="number" class="input" placeholder="—" />
+                                    <span asp-validation-for="Plan.Exercises[i].TargetDurationSeconds" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div>
+                                    <label class="input-label" asp-for="Plan.Exercises[i].TargetDistance">Distance (@UnitConverter.DistanceUnitLabel(Model.UserUnits))</label>
+                                    <input asp-for="Plan.Exercises[i].TargetDistance" type="number" step="0.01" class="input" placeholder="—" />
+                                    <span asp-validation-for="Plan.Exercises[i].TargetDistance" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div class="md:col-span-2 xl:col-span-4">
+                                    <label class="input-label" asp-for="Plan.Exercises[i].Notes">Notes</label>
+                                    <textarea asp-for="Plan.Exercises[i].Notes" rows="2" class="input" placeholder="Optional cue or reminder"></textarea>
+                                    <span asp-validation-for="Plan.Exercises[i].Notes" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3 class="text-xl font-semibold text-slate-950 dark:text-white">Nothing in this plan yet</h3>
+                    <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Apply a template to bring in a whole block at once, or pick single movements from the library — then order them into the session you want to train.</p>
+                </div>
+            }
+        </section>
+
+        <section class="surface-card">
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <a asp-page="/Plans/Index" class="btn btn-secondary">Cancel</a>
+                <button type="submit" asp-page-handler="Save" class="btn btn-primary">Save plan</button>
+            </div>
+        </section>
+    </form>
+</div>

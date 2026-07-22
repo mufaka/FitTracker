@@ -1,0 +1,254 @@
+@model ExerciseLogCardModel
+@{
+    var workoutExercise = Model.WorkoutExercise;
+    var isSkipped = workoutExercise.Status == WorkoutExerciseStatuses.Skipped;
+    var isRated = WorkoutExerciseStatuses.IsEffort(workoutExercise.Status);
+    var hasSets = workoutExercise.Sets.Any();
+    var isEditable = !Model.IsWorkoutCompleted;
+
+    // An effort rating alone would move the flow on having recorded nothing about what was actually
+    // done, so in the flow it waits for a set. Skip stays open throughout — that is the answer for an
+    // exercise there is nothing to record about. A rating already given stays changeable.
+    var canRate = hasSets || isRated;
+
+    // What the flow's action block asks, or reports back once it has an answer.
+    var question = isSkipped ? "Skipped — it stays in the record as not done."
+        : isRated ? $"Marked done, and it felt {workoutExercise.Status.ToLowerInvariant()}."
+        : hasSets ? "Sets logged. How did it feel?"
+        : "Log what you did, then say how it went.";
+
+    var questionHint = canRate
+        ? "Answering moves you on to the next exercise."
+        : "Rating unlocks once a set is recorded — or skip this exercise if you are not doing it.";
+
+    // Only the parts of the prescription the plan actually declared. Distance is stored
+    // canonically, so it converts here like every other rendered measurement.
+    string PlanTarget(WorkoutPlanExercise planned)
+    {
+        var parts = new List<string>();
+
+        if (planned.TargetSets.HasValue && planned.TargetReps.HasValue)
+            parts.Add($"{planned.TargetSets} × {planned.TargetReps}");
+        else if (planned.TargetSets.HasValue)
+            parts.Add($"{planned.TargetSets} sets");
+        else if (planned.TargetReps.HasValue)
+            parts.Add($"{planned.TargetReps} reps");
+
+        if (planned.TargetDurationSeconds.HasValue)
+            parts.Add(UnitConverter.FormatDuration(planned.TargetDurationSeconds));
+
+        if (planned.TargetDistance.HasValue)
+            parts.Add(UnitConverter.FormatDistance(planned.TargetDistance, Model.UserUnits));
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : "no set target";
+    }
+}
+
+@* Skipped work is still part of the record, so it stays visible — just muted, so the eye skips it
+   the way the user did (WDM-UI-07). *@
+<section class="surface-card @(isSkipped ? "border-dashed opacity-90" : string.Empty)">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="chip chip-primary">Exercise @Model.Position</span>
+                <span class="chip">@workoutExercise.Exercise.Equipment</span>
+                @if (isSkipped)
+                {
+                    <span class="chip chip-danger">Skipped</span>
+                }
+                else if (isRated)
+                {
+                    <span class="chip chip-success">Felt @workoutExercise.Status.ToLowerInvariant()</span>
+                }
+                else if (Model.Planned != null)
+                {
+                    <span class="chip">Planned</span>
+                }
+            </div>
+            <h2 class="mt-3 font-semibold tracking-tight text-slate-950 dark:text-white @(Model.Focused ? "text-2xl sm:text-3xl" : "text-2xl")">@workoutExercise.Exercise.Name</h2>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@workoutExercise.Exercise.MuscleGroups</p>
+            @if (Model.Planned != null)
+            {
+                @* Read from the plan every time it is drawn, never copied onto the workout — so
+                   editing the plan changes the guidance and never a set. *@
+                <p class="mt-2 text-sm font-medium text-primary-600 dark:text-primary-300">
+                    Plan target: @PlanTarget(Model.Planned)
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.Planned.Notes))
+                {
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@Model.Planned.Notes</p>
+                }
+            }
+        </div>
+        @* Dropping an exercise is a change to the lineup, which is the list's job. The flow only ever
+           asks whether this one was done, and "no" is Skip — which keeps it in the record. *@
+        @if (isEditable && !Model.Focused)
+        {
+            <button type="submit"
+                    asp-page-handler="RemoveExercise"
+                    asp-route-exerciseId="@workoutExercise.Id"
+                    hx-post="?handler=RemoveExercise&amp;exerciseId=@workoutExercise.Id"
+                    hx-include="closest form"
+                    hx-disabled-elt="this"
+                    class="btn btn-danger">
+                Remove exercise
+            </button>
+        }
+    </div>
+
+    @if (isEditable && !Model.Focused)
+    {
+        <div class="mt-5 flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-500 dark:text-slate-400">How did it go?</span>
+            @foreach (var effort in WorkoutExerciseStatuses.Effort)
+            {
+                <button type="submit"
+                        asp-page-handler="SetStatus"
+                        asp-route-workoutExerciseId="@workoutExercise.Id"
+                        asp-route-status="@effort"
+                        hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@effort"
+                        hx-include="closest form"
+                        hx-disabled-elt="this"
+                        class="chip @(workoutExercise.Status == effort ? "chip-success" : string.Empty)">
+                    @effort
+                </button>
+            }
+            @* Skipping something already logged would contradict the record, so the option is simply
+               absent rather than offered and refused (WDM-UI-15). *@
+            @if (!hasSets)
+            {
+                <button type="submit"
+                        asp-page-handler="SetStatus"
+                        asp-route-workoutExerciseId="@workoutExercise.Id"
+                        asp-route-status="@(isSkipped ? WorkoutExerciseStatuses.Pending : WorkoutExerciseStatuses.Skipped)"
+                        hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@(isSkipped ? WorkoutExerciseStatuses.Pending : WorkoutExerciseStatuses.Skipped)"
+                        hx-include="closest form"
+                        hx-disabled-elt="this"
+                        class="chip @(isSkipped ? "chip-danger" : string.Empty)">
+                    @(isSkipped ? "Un-skip" : "Skip")
+                </button>
+            }
+            @if (isRated)
+            {
+                <button type="submit"
+                        asp-page-handler="SetStatus"
+                        asp-route-workoutExerciseId="@workoutExercise.Id"
+                        asp-route-status="@WorkoutExerciseStatuses.Pending"
+                        hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@WorkoutExerciseStatuses.Pending"
+                        hx-include="closest form"
+                        hx-disabled-elt="this"
+                        class="chip">
+                    Clear
+                </button>
+            }
+        </div>
+    }
+
+    @* Advisory, so it reads as a note against the exercise rather than another card stacked on it:
+       an accent rule down the side instead of a full bordered surface (WDM-UI-21). *@
+    @if (Model.Suggestion != null)
+    {
+        <div class="mt-5 border-l-2 border-primary-400 pl-4 dark:border-primary-500/60">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <p class="page-eyebrow">Progressive overload</p>
+                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Last: @Model.Suggestion.LastPerformedOn.ToString("MMM dd")</span>
+            </div>
+            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">@Model.Suggestion.Recommendation</p>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+                <span class="chip">@Model.Suggestion.LastSetCount set@(Model.Suggestion.LastSetCount == 1 ? string.Empty : "s") last time</span>
+                @if (Model.Suggestion.LastTopWeight.HasValue && Model.Suggestion.LastTopReps.HasValue)
+                {
+                    <span class="chip">Top set: @UnitConverter.FormatWeight(Model.Suggestion.LastTopWeight, Model.UserUnits) × @Model.Suggestion.LastTopReps.Value</span>
+                }
+                else if (Model.Suggestion.LastTopReps.HasValue)
+                {
+                    <span class="chip">Best set: @Model.Suggestion.LastTopReps.Value reps</span>
+                }
+
+                @if (Model.Suggestion.LastTotalVolume > 0)
+                {
+                    <span class="chip">Volume: @UnitConverter.FormatVolume(Model.Suggestion.LastTotalVolume, Model.UserUnits)</span>
+                }
+
+                @if (Model.Suggestion.SuggestedWeight.HasValue && Model.Suggestion.SuggestedReps.HasValue)
+                {
+                    <span class="chip chip-success">Target: @UnitConverter.FormatWeight(Model.Suggestion.SuggestedWeight, Model.UserUnits) × @Model.Suggestion.SuggestedReps.Value</span>
+                }
+                else if (Model.Suggestion.SuggestedReps.HasValue)
+                {
+                    <span class="chip chip-success">Target: @Model.Suggestion.SuggestedReps.Value reps</span>
+                }
+            </div>
+        </div>
+    }
+
+    @* Recorded sets and the rows still on offer are one table, not a table and a form in separate
+       boxes. Nothing renders for a completed workout with no sets, which is a skipped one. *@
+    @if (isEditable || hasSets)
+    {
+        <partial name="~/Pages/Shared/Components/_SetInput.cshtml"
+                 model="SetInputModel.For(workoutExercise, Model.UserUnits, Model.Planned, isEditable)" />
+    }
+
+    @* In the flow the status control is not a detail on the card, it is the question the screen is
+       asking (WDM-UI-14) — so it sits last, full width, and says what answering it will do. Divided
+       from the sets by a rule rather than boxed off inside the card it already sits in. *@
+    @if (isEditable && Model.Focused)
+    {
+        <div class="mt-6 border-t border-slate-200/80 pt-5 dark:border-slate-800">
+            <p class="text-base font-semibold text-slate-950 dark:text-white">@question</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@questionHint</p>
+
+            @* Three abreast at every width: they are one choice of three, and stacking them made the
+               answer to a one-tap question three screens' worth of button. *@
+            <div class="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                @foreach (var effort in WorkoutExerciseStatuses.Effort)
+                {
+                    <button type="submit"
+                            asp-page-handler="SetStatus"
+                            asp-route-workoutExerciseId="@workoutExercise.Id"
+                            asp-route-status="@effort"
+                            hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@effort"
+                            hx-include="closest form"
+                            hx-disabled-elt="this"
+                            disabled="@(canRate ? null : "disabled")"
+                            class="btn @(workoutExercise.Status == effort ? "btn-primary" : "btn-secondary")">
+                        @effort
+                    </button>
+                }
+            </div>
+
+            <div class="mt-3 flex flex-col gap-3 sm:flex-row">
+                @* Skipping something already logged would contradict the record, so the option is
+                   simply absent rather than offered and refused (WDM-UI-15). *@
+                @if (!hasSets)
+                {
+                    <button type="submit"
+                            asp-page-handler="SetStatus"
+                            asp-route-workoutExerciseId="@workoutExercise.Id"
+                            asp-route-status="@(isSkipped ? WorkoutExerciseStatuses.Pending : WorkoutExerciseStatuses.Skipped)"
+                            hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@(isSkipped ? WorkoutExerciseStatuses.Pending : WorkoutExerciseStatuses.Skipped)"
+                            hx-include="closest form"
+                            hx-disabled-elt="this"
+                            class="btn btn-secondary flex-1">
+                        @(isSkipped ? "Un-skip this exercise" : "Skip this exercise")
+                    </button>
+                }
+                @if (isRated)
+                {
+                    <button type="submit"
+                            asp-page-handler="SetStatus"
+                            asp-route-workoutExerciseId="@workoutExercise.Id"
+                            asp-route-status="@WorkoutExerciseStatuses.Pending"
+                            hx-post="?handler=SetStatus&amp;workoutExerciseId=@workoutExercise.Id&amp;status=@WorkoutExerciseStatuses.Pending"
+                            hx-include="closest form"
+                            hx-disabled-elt="this"
+                            class="btn btn-secondary flex-1">
+                        Clear this answer
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</section>

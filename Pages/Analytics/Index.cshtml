@@ -36,8 +36,8 @@
         </div>
         <div class="metric-card">
             <p class="metric-label">Average volume</p>
-            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.AverageVolumePerWorkout.ToString("N0")</p>
-            <p class="metric-meta">Volume per completed workout</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@(UnitConverter.ToDisplayVolume(Model.Summary.AverageVolumePerWorkout, Model.UserUnits).ToString("N0"))</p>
+            <p class="metric-meta">Volume per completed workout (@UnitConverter.WeightUnitLabel(Model.UserUnits))</p>
         </div>
         <div class="metric-card">
             <p class="metric-label">Personal records</p>
@@ -95,7 +95,7 @@
                                     <p class="text-lg font-semibold text-slate-950 dark:text-white">@item.MuscleGroup</p>
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@item.WorkoutCount workout@(item.WorkoutCount == 1 ? string.Empty : "s") · @item.AverageDuration.ToString("0.0") min avg duration</p>
                                 </div>
-                                <span class="chip chip-primary">@item.Volume.ToString("N0")</span>
+                                <span class="chip chip-primary">@UnitConverter.FormatVolume(item.Volume, Model.UserUnits)</span>
                             </div>
                         </div>
                     }
@@ -130,7 +130,7 @@
                                     <p class="text-lg font-semibold text-slate-950 dark:text-white">@item.MuscleGroup</p>
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@item.WorkoutCount workout@(item.WorkoutCount == 1 ? string.Empty : "s") · @item.AverageDuration.ToString("0.0") min avg duration</p>
                                 </div>
-                                <span class="chip">@item.Volume.ToString("N0")</span>
+                                <span class="chip">@UnitConverter.FormatVolume(item.Volume, Model.UserUnits)</span>
                             </div>
                         </div>
                     }
@@ -171,7 +171,7 @@
                     _ => "bg-white/70 text-slate-500 border-slate-200/80 dark:bg-slate-900/70 dark:text-slate-400 dark:border-slate-800"
                 };
 
-                <a asp-page="/Analytics/Daily" asp-route-date="@cell.Date.ToString("yyyy-MM-dd")" class="rounded-[1rem] border p-3 text-center transition hover:-translate-y-0.5 hover:shadow-lg @heatmapClasses" title="@cell.Date.ToString("MMM dd, yyyy") · @cell.WorkoutCount workout(s) · @cell.Volume.ToString("N0") volume">
+                <a asp-page="/Analytics/Daily" asp-route-date="@cell.Date.ToString("yyyy-MM-dd")" class="rounded-[1rem] border p-3 text-center transition hover:-translate-y-0.5 hover:shadow-lg @heatmapClasses" title="@cell.Date.ToString("MMM dd, yyyy") · @cell.WorkoutCount workout(s) · @UnitConverter.FormatVolume(cell.Volume, Model.UserUnits) volume">
                     <div class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] opacity-80">@cell.Date.ToString("ddd")</div>
                     <div class="mt-2 text-lg font-semibold">@cell.Date.Day</div>
                     <div class="mt-2 text-[0.65rem] font-medium uppercase tracking-[0.18em] opacity-80">@cell.WorkoutCount</div>
@@ -198,10 +198,10 @@
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p class="text-lg font-semibold text-slate-950 dark:text-white">@record.Exercise.Name</p>
-                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@record.Date.ToString("MMM dd, yyyy") · @record.Weight.ToString("0.##") × @record.Reps</p>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@record.Date.ToString("MMM dd, yyyy") · @UnitConverter.FormatWeight(record.Weight, Model.UserUnits) × @record.Reps</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <span class="chip chip-success">1RM @record.OneRepMax.ToString("0.##")</span>
+                                <span class="chip chip-success">1RM @UnitConverter.FormatWeight(record.OneRepMax, Model.UserUnits)</span>
                                 <a asp-page="/Progress/Exercise" asp-route-id="@record.ExerciseId" class="btn btn-secondary">View progress</a>
                             </div>
                         </div>
@@ -223,7 +223,7 @@
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const volumeTrendLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Label)));
-        const volumeTrendValues = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.Volume)));
+        const volumeTrendValues = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => UnitConverter.ToDisplayVolume(point.Volume, Model.UserUnits))));
         const volumeTrendWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.VolumeTrend.Select(point => point.WorkoutCount)));
         const prTimelineLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.PersonalRecordTimeline.Select(point => point.Label)));
         const prTimelineCounts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.PersonalRecordTimeline.Select(point => point.RecordCount)));
@@ -238,7 +238,7 @@
                     labels: volumeTrendLabels,
                     datasets: [
                         {
-                            label: 'Volume',
+                            label: 'Volume (@(UnitConverter.WeightUnitLabel(Model.UserUnits)))',
                             data: volumeTrendValues,
                             backgroundColor: 'rgba(99, 102, 241, 0.7)',
                             borderRadius: 12,

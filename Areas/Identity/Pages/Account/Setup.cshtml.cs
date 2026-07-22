@@ -1,4 +1,4 @@
-#nullable disable
+﻿#nullable disable
 
 using System.ComponentModel.DataAnnotations;
 using FitTracker.Models;
@@ -32,7 +32,7 @@ public class SetupModel : PageModel
     {
         [Required]
         [Display(Name = "Preferred units")]
-        public string PreferredUnits { get; set; } = "lbs";
+        public string PreferredUnits { get; set; } = UnitConverter.DefaultWeightUnit;
 
         [Range(15, 600)]
         [Display(Name = "Default rest timer (seconds)")]
@@ -54,7 +54,7 @@ public class SetupModel : PageModel
 
         Input = new InputModel
         {
-            PreferredUnits = string.IsNullOrWhiteSpace(user.PreferredUnits) ? "lbs" : user.PreferredUnits,
+            PreferredUnits = UnitConverter.NormalizeWeightUnit(user.PreferredUnits),
             DefaultRestTimer = user.DefaultRestTimer > 0 ? user.DefaultRestTimer : 90,
             Goals = user.Goals
         };
@@ -75,7 +75,9 @@ public class SetupModel : PageModel
             return Page();
         }
 
-        user.PreferredUnits = Input.PreferredUnits;
+        // Normalized on the way in: this column is the input to every conversion in the app,
+        // so free text must not reach it however the form was posted.
+        user.PreferredUnits = UnitConverter.NormalizeWeightUnit(Input.PreferredUnits);
         user.DefaultRestTimer = Input.DefaultRestTimer;
         user.Goals = Input.Goals?.Trim();
 

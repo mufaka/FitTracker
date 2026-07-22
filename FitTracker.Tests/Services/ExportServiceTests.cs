@@ -81,8 +81,8 @@ public class ExportServiceTests
         var user = CreateUser();
         context.Users.Add(user);
         context.BodyMeasurements.AddRange(
-            new BodyMeasurement { UserId = user.Id, Date = new DateTime(2026, 4, 2), Weight = 182m, BodyFatPercentage = 19.5m },
-            new BodyMeasurement { UserId = user.Id, Date = new DateTime(2026, 5, 2), Weight = 180m, BodyFatPercentage = 19m });
+            new BodyMeasurement { UserId = user.Id, Date = new DateTime(2026, 4, 2), Weight = UnitConverter.ToCanonicalWeight(182m, UnitConverter.Pounds), BodyFatPercentage = 19.5m },
+            new BodyMeasurement { UserId = user.Id, Date = new DateTime(2026, 5, 2), Weight = UnitConverter.ToCanonicalWeight(180m, UnitConverter.Pounds), BodyFatPercentage = 19m });
 
         await context.SaveChangesAsync();
 
@@ -90,7 +90,8 @@ public class ExportServiceTests
         var export = await service.ExportMeasurementsCsvAsync(user.Id, new DateTime(2026, 4, 1), new DateTime(2026, 4, 30));
         var csv = Encoding.UTF8.GetString(export.Content);
 
-        Assert.Contains("MeasurementId,Date,Weight,BodyFatPercentage", csv);
+        // The unit belongs in the header, not on every cell, so the file stays parseable.
+        Assert.Contains("MeasurementId,Date,Weight (lbs),BodyFatPercentage", csv);
         Assert.Contains("182", csv);
         Assert.DoesNotContain("180", csv);
     }
@@ -116,9 +117,9 @@ public class ExportServiceTests
             ExerciseId = exercise.Id,
             WorkoutId = workout.Id,
             Date = workout.Date,
-            Weight = 225m,
+            Weight = UnitConverter.ToCanonicalWeight(225m, UnitConverter.Pounds),
             Reps = 5,
-            OneRepMax = 262.5m
+            OneRepMax = UnitConverter.ToCanonicalWeight(262.5m, UnitConverter.Pounds)
         });
         await context.SaveChangesAsync();
 
@@ -126,11 +127,16 @@ public class ExportServiceTests
         var export = await service.ExportPersonalRecordsCsvAsync(user.Id, new DateTime(2026, 4, 1), new DateTime(2026, 4, 30));
         var csv = Encoding.UTF8.GetString(export.Content);
 
-        Assert.Contains("PersonalRecordId,Date,Exercise,Weight,Reps,OneRepMax,WorkoutId", csv);
+        Assert.Contains("PersonalRecordId,Date,Exercise,Weight (lbs),Reps,OneRepMax (lbs),WorkoutId", csv);
         Assert.Contains("Squat", csv);
         Assert.Contains("262.5", csv);
     }
 
+    /// <summary>
+    /// The tuple weights read as pounds — the figures a user would type — and are stored canonically.
+    /// An export for an lbs user must therefore hand back exactly the numbers passed in here, which
+    /// is what makes the assertions above a round-trip test of the conversion as well as of the file.
+    /// </summary>
     private static Workout CreateWorkout(string userId, Exercise exercise, DateTime date, int duration, params (decimal Weight, int Reps)[] sets) => new()
     {
         UserId = userId,
@@ -146,7 +152,7 @@ public class ExportServiceTests
                 Sets = sets.Select((set, index) => new Set
                 {
                     SetNumber = index + 1,
-                    Weight = set.Weight,
+                    Weight = UnitConverter.ToCanonicalWeight(set.Weight, UnitConverter.Pounds),
                     Reps = set.Reps
                 }).ToList()
             }

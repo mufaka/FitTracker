@@ -1,4 +1,4 @@
-using FitTracker.Data;
+﻿using FitTracker.Data;
 using FitTracker.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,15 +44,18 @@ public class AnalyticsService : IAnalyticsService
         var summary = new DailySummary
         {
             Date = date,
-            WorkoutCount = todaysWorkouts.Count
+            WorkoutCount = todaysWorkouts.Count,
+            Units = await DisplayUnits.ForUserAsync(_context, userId)
         };
 
         if (!todaysWorkouts.Any())
             return summary;
 
-        // Calculate exercises completed
+        // Only what was actually performed: a planned exercise the user skipped, or never got to,
+        // must not appear on a summary of the day's training (WDM-54).
         summary.ExercisesCompleted = todaysWorkouts
             .SelectMany(w => w.WorkoutExercises)
+            .Where(we => we.IsPerformed)
             .Select(we => we.Exercise.Name)
             .Distinct()
             .ToList();
@@ -135,8 +138,11 @@ public class AnalyticsService : IAnalyticsService
             .SelectMany(we => we.Sets)
             .Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0));
 
+        // Setless, unrated rows would otherwise manufacture a muscle group that was never trained —
+        // worst of all in LeastWorkedMuscleGroups below, which sorts by ascending volume and so
+        // fills up with phantom zero-volume entries.
         var muscleGroups = workouts
-            .SelectMany(w => w.WorkoutExercises.Select(we => new { Workout = w, WorkoutExercise = we }))
+            .SelectMany(w => w.WorkoutExercises.Where(we => we.IsPerformed).Select(we => new { Workout = w, WorkoutExercise = we }))
             .SelectMany(item => item.WorkoutExercise.Exercise.MuscleGroups.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .DefaultIfEmpty("Other")
                 .Select(muscle => new
@@ -342,6 +348,7 @@ public class AnalyticsService : IAnalyticsService
             .Where(we => we.ExerciseId == exerciseId &&
                          we.Workout.UserId == userId &&
                          we.Workout.IsCompleted)
+            .Where(WorkoutExerciseStatuses.PerformedPredicate)
             .ToListAsync();
 
         var personalRecords = await _context.PersonalRecords
@@ -371,6 +378,14 @@ public class AnalyticsService : IAnalyticsService
 
                 personalRecordsByWorkout.TryGetValue(group.Key.WorkoutId, out var personalRecord);
 
+                // The heaviest set is not always the one that estimates best — and if it sits
+                // outside the usable rep range it estimates nothing at all — so the session's 1RM
+                // is the best any of its sets can produce.
+                var estimatedOneRepMax = allSets
+                    .Select(s => OneRepMaxCalculator.CalculateAverage(s.Weight ?? 0, s.Reps ?? 0))
+                    .DefaultIfEmpty(0)
+                    .Max();
+
                 return new ExerciseProgressPoint
                 {
                     WorkoutId = group.Key.WorkoutId,
@@ -378,9 +393,7 @@ public class AnalyticsService : IAnalyticsService
                     Label = group.Key.Date.ToString("MMM dd"),
                     BestWeight = bestSet?.Weight ?? 0,
                     BestReps = bestSet?.Reps ?? 0,
-                    EstimatedOneRepMax = bestSet != null
-                        ? OneRepMaxCalculator.CalculateAverage(bestSet.Weight ?? 0, bestSet.Reps ?? 0)
-                        : 0,
+                    EstimatedOneRepMax = estimatedOneRepMax,
                     Volume = allSets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0)),
                     HasPersonalRecord = personalRecord != null,
                     PersonalRecordWeight = personalRecord?.Weight,
@@ -449,7 +462,7 @@ public class AnalyticsService : IAnalyticsService
         var strengthMinutes = 0;
         var cardioMinutes = 0;
 
-        var exercises = workout.WorkoutExercises.Select(we => we.Exercise).ToList();
+        var exercises = workout.WorkoutExercises.Where(we => we.IsPerformed).Select(we => we.Exercise).ToList();
         
         if (exercises.Any(e => e.Category == "Cardio"))
         {
@@ -546,7 +559,7 @@ public class AnalyticsService : IAnalyticsService
             .Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0));
 
         var muscleGroupDistribution = workouts
-            .SelectMany(w => w.WorkoutExercises)
+            .SelectMany(w => w.WorkoutExercises.Where(we => we.IsPerformed))
             .SelectMany(we => we.Exercise.MuscleGroups.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .DefaultIfEmpty("Other")
                 .Select(muscle => new { Muscle = muscle, Volume = we.Sets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0)) }))
@@ -615,6 +628,15 @@ public class DailySummary
     public DateTime Date { get; set; }
     public int WorkoutCount { get; set; }
     public List<string> ExercisesCompleted { get; set; } = new();
+
+    /// <summary>
+    /// The unit <see cref="TotalVolume"/> should be rendered in. It travels on the model because
+    /// this summary is drawn by a partial, which has no page model to read the preference from —
+    /// the same reason <see cref="Models.SetInputModel"/> carries its unit. The value itself stays
+    /// canonical; the partial converts.
+    /// </summary>
+    public string Units { get; set; } = UnitConverter.DefaultWeightUnit;
+
     public decimal TotalVolume { get; set; }
     public int TotalDuration { get; set; }
     public int TotalSets { get; set; }

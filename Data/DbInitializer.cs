@@ -92,7 +92,61 @@ public static class DbInitializer
                 new() { Name = "Stair Climber", Category = "Cardio", MuscleGroups = "Legs,Cardio", Equipment = "Machine", Description = "Climbing cardio" },
             };
 
+            foreach (var exercise in exercises)
+            {
+                exercise.TracksOneRepMax = IsWeightLoaded(exercise.Category, exercise.Equipment);
+            }
+
             await context.Exercises.AddRangeAsync(exercises);
+            changesMade = true;
+        }
+
+        // Seeded per name rather than behind the whole-table guard above, because these arrived
+        // after the library did: on any database that already has exercises the guard would skip
+        // them forever, and the catalog below resolves exercises by name and fails startup if one
+        // is missing (WDM-43, WDM-44).
+        var additionalExercises = new List<Exercise>
+        {
+            new() { Name = "Bodyweight Squat", Category = "Strength", MuscleGroups = "Legs,Glutes", Equipment = "Bodyweight", Description = "Unloaded squat pattern" },
+            new() { Name = "Glute Bridge", Category = "Strength", MuscleGroups = "Glutes,Hamstrings", Equipment = "Bodyweight", Description = "Glute activation from the floor" },
+            new() { Name = "Walking", Category = "Cardio", MuscleGroups = "Legs,Cardio", Equipment = "None", Description = "Easy-paced walking" },
+            new() { Name = "Sprint Intervals", Category = "Cardio", MuscleGroups = "Legs,Cardio", Equipment = "None", Description = "Short maximal efforts with recovery" },
+            new() { Name = "Jumping Jacks", Category = "Cardio", MuscleGroups = "Full Body,Cardio", Equipment = "Bodyweight", Description = "Whole-body warm-up movement" },
+            new() { Name = "High Knees", Category = "Cardio", MuscleGroups = "Legs,Cardio", Equipment = "Bodyweight", Description = "Running drill on the spot" },
+            new() { Name = "Butt Kicks", Category = "Cardio", MuscleGroups = "Hamstrings,Cardio", Equipment = "Bodyweight", Description = "Running drill for the hamstrings" },
+
+            // Mobility is a new category, added for warm-up and activation work. The seed-time
+            // IsWeightLoaded rule leaves TracksOneRepMax false for every entry in it, which is
+            // correct: none of these has a meaningful one-rep max (D7, WDM-44).
+            new() { Name = "Arm Circles", Category = "Mobility", MuscleGroups = "Shoulders", Equipment = "Bodyweight", Description = "Shoulder warm-up" },
+            new() { Name = "Leg Swings", Category = "Mobility", MuscleGroups = "Legs,Hips", Equipment = "Bodyweight", Description = "Dynamic hip mobility" },
+            new() { Name = "Hip Circles", Category = "Mobility", MuscleGroups = "Hips", Equipment = "Bodyweight", Description = "Hip joint mobility" },
+            new() { Name = "Ankle Circles", Category = "Mobility", MuscleGroups = "Calves", Equipment = "Bodyweight", Description = "Ankle mobility" },
+            new() { Name = "World's Greatest Stretch", Category = "Mobility", MuscleGroups = "Hips,Back,Shoulders", Equipment = "Bodyweight", Description = "Full-body dynamic stretch" },
+            new() { Name = "Cat-Cow", Category = "Mobility", MuscleGroups = "Back,Core", Equipment = "Bodyweight", Description = "Spinal flexion and extension" },
+            new() { Name = "Scapular Push-Ups", Category = "Mobility", MuscleGroups = "Shoulders,Chest", Equipment = "Bodyweight", Description = "Scapular protraction and retraction" },
+            new() { Name = "Scapular Pull-Ups", Category = "Mobility", MuscleGroups = "Back,Shoulders", Equipment = "Bodyweight", Description = "Scapular control from a hang" },
+            new() { Name = "Wall Slides", Category = "Mobility", MuscleGroups = "Shoulders,Back", Equipment = "Bodyweight", Description = "Overhead shoulder mobility" },
+            new() { Name = "Dead Hang", Category = "Mobility", MuscleGroups = "Back,Forearms", Equipment = "Bodyweight", Description = "Passive hang for shoulder decompression" },
+            new() { Name = "Band Pull-Aparts", Category = "Mobility", MuscleGroups = "Back,Shoulders", Equipment = "Resistance Band", Description = "Upper back activation" },
+        };
+
+        var existingExerciseNames = await context.Exercises
+            .Select(exercise => exercise.Name)
+            .ToListAsync();
+
+        var missingExercises = additionalExercises
+            .Where(exercise => !existingExerciseNames.Contains(exercise.Name))
+            .ToList();
+
+        if (missingExercises.Count > 0)
+        {
+            foreach (var exercise in missingExercises)
+            {
+                exercise.TracksOneRepMax = IsWeightLoaded(exercise.Category, exercise.Equipment);
+            }
+
+            await context.Exercises.AddRangeAsync(missingExercises);
             changesMade = true;
         }
 
@@ -157,5 +211,83 @@ public static class DbInitializer
         {
             await context.SaveChangesAsync();
         }
+
+        // Seeded after the SaveChanges above, because it resolves exercises by name and the
+        // additions made in this run have to be queryable first.
+        await SeedTemplateCatalogAsync(context);
     }
+
+    /// <summary>
+    /// Inserts every catalog entry that is absent by <see cref="WorkoutTemplate.CatalogKey"/>, and
+    /// leaves the ones already present exactly as they are (WDM-42, D6). Unlike the whole-table
+    /// guards above, this runs per entry, so a template added to the catalog in a later release
+    /// reaches a database that was seeded by an earlier one — and re-running it is a no-op.
+    /// </summary>
+    private static async Task SeedTemplateCatalogAsync(ApplicationDbContext context)
+    {
+        var seededKeys = await context.WorkoutTemplates
+            .Where(template => template.CatalogKey != null)
+            .Select(template => template.CatalogKey!)
+            .ToListAsync();
+
+        var missingEntries = TemplateCatalog.Entries
+            .Where(entry => !seededKeys.Contains(entry.CatalogKey))
+            .ToList();
+
+        if (missingEntries.Count == 0)
+            return;
+
+        var exerciseIdsByName = await context.Exercises
+            .Select(exercise => new { exercise.Name, exercise.Id })
+            .ToDictionaryAsync(exercise => exercise.Name, exercise => exercise.Id);
+
+        foreach (var entry in missingEntries)
+        {
+            var template = new WorkoutTemplate
+            {
+                // Ownerless: a built-in belongs to nobody and is visible to everybody (WDM-04).
+                UserId = null,
+                CatalogKey = entry.CatalogKey,
+                Name = entry.Name,
+                Description = entry.Description,
+                IsActive = true
+            };
+
+            template.Exercises = entry.Exercises
+                .Select((catalogExercise, index) => new WorkoutTemplateExercise
+                {
+                    // Fail the whole startup rather than seed a template with a hole in it. A
+                    // renamed or missing exercise is a bug in the catalog data, and it should be
+                    // impossible to miss (WDM-43, WDM-NF-03).
+                    ExerciseId = exerciseIdsByName.TryGetValue(catalogExercise.ExerciseName, out var exerciseId)
+                        ? exerciseId
+                        : throw new InvalidOperationException(
+                            $"Template catalog entry '{entry.CatalogKey}' references the exercise " +
+                            $"'{catalogExercise.ExerciseName}', which is not in the seeded library."),
+                    Order = index + 1,
+                    DefaultSets = catalogExercise.Sets,
+                    DefaultReps = catalogExercise.Reps,
+                    DefaultDurationSeconds = catalogExercise.DurationSeconds,
+                    DefaultDistance = catalogExercise.DistanceKm,
+                    Notes = catalogExercise.Notes
+                })
+                .ToList();
+
+            context.WorkoutTemplates.Add(template);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seed-time default for <see cref="Exercise.TracksOneRepMax"/>: strength work carries an
+    /// external load unless the equipment is the lifter. Cardio and core holds never do. The
+    /// AddOneRepMaxTracking migration backfills existing databases with the same rule; both are
+    /// starting points, and the flag is per exercise so it can be corrected afterwards.
+    /// </summary>
+    private static bool IsWeightLoaded(string category, string equipment) =>
+        string.Equals(category, "Strength", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(equipment, "Bodyweight", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(equipment, "None", StringComparison.OrdinalIgnoreCase)
+        && !string.IsNullOrWhiteSpace(equipment);
 }

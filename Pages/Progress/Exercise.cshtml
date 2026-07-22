@@ -31,7 +31,7 @@
                 <div class="flex flex-wrap gap-3">
                     <a asp-page="/Workouts/Start" class="btn btn-primary">Log workout</a>
                     <a asp-page="/PRs/Index" class="btn btn-secondary">View PRs</a>
-                    <a asp-page="/OneRepMax" class="btn btn-secondary">1RM calculator</a>
+                    <a asp-page="/Progress/OneRepMax" asp-route-exerciseId="@Model.Summary.ExerciseId" class="btn btn-secondary">1RM tracking</a>
                 </div>
             </div>
         </section>
@@ -44,22 +44,22 @@
             </div>
             <div class="metric-card">
                 <p class="metric-label">Best weight</p>
-                <p class="metric-value text-emerald-600 dark:text-emerald-300">@Model.Summary.BestWeight.ToString("0.##")</p>
+                <p class="metric-value text-emerald-600 dark:text-emerald-300">@UnitConverter.FormatWeight(Model.Summary.BestWeight, Model.UserUnits)</p>
                 <p class="metric-meta">Heaviest logged set</p>
             </div>
             <div class="metric-card">
                 <p class="metric-label">Total volume</p>
-                <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.TotalVolume.ToString("N0")</p>
+                <p class="metric-value text-violet-600 dark:text-violet-300">@UnitConverter.FormatVolume(Model.Summary.TotalVolume, Model.UserUnits)</p>
                 <p class="metric-meta">Weight × reps across all sessions</p>
             </div>
             <div class="metric-card">
                 <p class="metric-label">Personal records</p>
                 <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.PersonalRecordCount</p>
-                <p class="metric-meta">Best estimated 1RM @Model.Summary.BestOneRepMax.ToString("0.##")</p>
+                <p class="metric-meta">Best estimated 1RM @UnitConverter.FormatWeight(Model.Summary.BestOneRepMax, Model.UserUnits)</p>
             </div>
             <div class="metric-card">
                 <p class="metric-label">Best avg 1RM</p>
-                <p class="metric-value text-sky-600 dark:text-sky-300">@Model.Summary.BestEstimatedOneRepMax.ToString("0.##")</p>
+                <p class="metric-value text-sky-600 dark:text-sky-300">@UnitConverter.FormatWeight(Model.Summary.BestEstimatedOneRepMax, Model.UserUnits)</p>
                 <p class="metric-meta">Calculated from logged top sets</p>
             </div>
         </section>
@@ -100,7 +100,7 @@
                         <p class="page-eyebrow">1RM progression</p>
                         <h2 class="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Estimated 1RM over time</h2>
                     </div>
-                    <span class="chip">Average of Epley and Brzycki</span>
+                    <a asp-page="/Progress/OneRepMax" asp-route-exerciseId="@Model.Summary.ExerciseId" class="chip">Average of Epley, Brzycki and Lombardi →</a>
                 </div>
                 <div class="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/70">
                     <canvas id="exerciseOneRepMaxChart" height="180"></canvas>
@@ -132,13 +132,13 @@
                             {
                                 <tr>
                                     <td class="font-semibold">@point.Date.ToString("MMM dd, yyyy")</td>
-                                    <td>@point.BestWeight.ToString("0.##") × @point.BestReps</td>
-                                    <td>@point.EstimatedOneRepMax.ToString("0.##")</td>
-                                    <td>@point.Volume.ToString("N0")</td>
+                                    <td>@UnitConverter.FormatWeight(point.BestWeight, Model.UserUnits) × @point.BestReps</td>
+                                    <td>@UnitConverter.FormatWeight(point.EstimatedOneRepMax, Model.UserUnits)</td>
+                                    <td>@UnitConverter.FormatVolume(point.Volume, Model.UserUnits)</td>
                                     <td>
                                         @if (point.HasPersonalRecord)
                                         {
-                                            <span class="chip chip-success">PR @point.PersonalRecordOneRepMax?.ToString("0.##")</span>
+                                            <span class="chip chip-success">PR @UnitConverter.FormatWeight(point.PersonalRecordOneRepMax, Model.UserUnits)</span>
                                         }
                                         else
                                         {
@@ -172,10 +172,10 @@
         <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
         <script>
             const exerciseLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.Label)));
-            const exerciseWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.BestWeight)));
-            const exerciseOneRepMaxes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.EstimatedOneRepMax)));
-            const exerciseVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.Volume)));
-            const exercisePersonalRecords = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.HasPersonalRecord ? point.PersonalRecordWeight : null)));
+            const exerciseWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => UnitConverter.ToDisplayWeight(point.BestWeight, Model.UserUnits))));
+            const exerciseOneRepMaxes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => UnitConverter.ToDisplayWeight(point.EstimatedOneRepMax, Model.UserUnits))));
+            const exerciseVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => UnitConverter.ToDisplayVolume(point.Volume, Model.UserUnits))));
+            const exercisePersonalRecords = @Html.Raw(JsonSerializer.Serialize(Model.Summary.ProgressPoints.Select(point => point.HasPersonalRecord ? UnitConverter.ToDisplayWeight(point.PersonalRecordWeight, Model.UserUnits) : null)));
 
             const isDarkMode = document.documentElement.classList.contains('dark');
             const axisColor = isDarkMode ? '#cbd5e1' : '#475569';

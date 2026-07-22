@@ -24,6 +24,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BodyMeasurement> BodyMeasurements { get; set; }
     public DbSet<ProgressPhoto> ProgressPhotos { get; set; }
     public DbSet<Set> Sets { get; set; }
+    public DbSet<WorkoutPlan> WorkoutPlans { get; set; }
+    public DbSet<WorkoutPlanExercise> WorkoutPlanExercises { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -49,6 +51,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Workout>()
             .HasIndex(w => w.UserId);
 
+        // Restrict, not Cascade: deleting a plan must never take performed workouts with it. Plans
+        // are soft-deleted and never physically removed, so this reference stays valid forever and
+        // the restriction is never actually hit (WDM-20).
+        builder.Entity<Workout>()
+            .HasOne(w => w.WorkoutPlan)
+            .WithMany()
+            .HasForeignKey(w => w.WorkoutPlanId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Configure PersonalRecord
         builder.Entity<PersonalRecord>()
             .HasOne(pr => pr.User)
@@ -71,13 +83,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<PersonalRecord>()
             .HasIndex(pr => new { pr.UserId, pr.ExerciseId, pr.Date });
 
+        // Copies of a canonical set weight, so they carry the same precision as the source.
         builder.Entity<PersonalRecord>()
             .Property(pr => pr.Weight)
-            .HasPrecision(10, 2);
+            .HasPrecision(10, 4);
 
         builder.Entity<PersonalRecord>()
             .Property(pr => pr.OneRepMax)
-            .HasPrecision(10, 2);
+            .HasPrecision(10, 4);
 
         // Configure Achievement
         builder.Entity<Achievement>()
@@ -176,9 +189,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<BodyMeasurement>()
             .HasIndex(bm => new { bm.UserId, bm.Date });
 
+        // Body weight shares the lbs/kg preference and so the same canonical precision as Set.Weight.
+        // The circumference fields below stay at (10, 2): they carry a length unit that has no
+        // preference anywhere in the app, and are deliberately left unconverted.
         builder.Entity<BodyMeasurement>()
             .Property(bm => bm.Weight)
-            .HasPrecision(10, 2);
+            .HasPrecision(10, 4);
 
         builder.Entity<BodyMeasurement>()
             .Property(bm => bm.BodyFatPercentage)
@@ -227,10 +243,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasMaxLength(500);
 
         // Configure WorkoutTemplate
+        // The relationship is optional because a built-in template has no owner (WDM-04).
         builder.Entity<WorkoutTemplate>()
             .HasOne(t => t.User)
             .WithMany(u => u.WorkoutTemplates)
             .HasForeignKey(t => t.UserId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<WorkoutTemplate>()
@@ -243,6 +261,58 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<WorkoutTemplate>()
             .Property(t => t.Description)
             .HasMaxLength(500);
+
+        builder.Entity<WorkoutTemplate>()
+            .Property(t => t.CatalogKey)
+            .HasMaxLength(100);
+
+        // Unique across the catalog, and irrelevant to the user-created templates that leave it
+        // null. SQLite treats NULLs as distinct in a unique index, so no filter is needed to let
+        // every personal template hold null at once.
+        builder.Entity<WorkoutTemplate>()
+            .HasIndex(t => t.CatalogKey)
+            .IsUnique();
+
+        // Configure WorkoutPlan
+        builder.Entity<WorkoutPlan>()
+            .HasOne(p => p.User)
+            .WithMany(u => u.WorkoutPlans)
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<WorkoutPlan>()
+            .HasIndex(p => p.UserId);
+
+        builder.Entity<WorkoutPlan>()
+            .Property(p => p.Name)
+            .HasMaxLength(100);
+
+        builder.Entity<WorkoutPlan>()
+            .Property(p => p.Description)
+            .HasMaxLength(500);
+
+        // Configure WorkoutPlanExercise
+        builder.Entity<WorkoutPlanExercise>()
+            .HasOne(pe => pe.Plan)
+            .WithMany(p => p.Exercises)
+            .HasForeignKey(pe => pe.WorkoutPlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Restrict, as everywhere else an exercise is referenced: removing a movement from the
+        // library must not silently rewrite the plans built on it.
+        builder.Entity<WorkoutPlanExercise>()
+            .HasOne(pe => pe.Exercise)
+            .WithMany(e => e.WorkoutPlanExercises)
+            .HasForeignKey(pe => pe.ExerciseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<WorkoutPlanExercise>()
+            .Property(pe => pe.Notes)
+            .HasMaxLength(300);
+
+        builder.Entity<WorkoutPlanExercise>()
+            .Property(pe => pe.TargetDistance)
+            .HasPrecision(10, 4);
 
         // Configure WorkoutExercise
         builder.Entity<WorkoutExercise>()
@@ -274,6 +344,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .Property(te => te.Notes)
             .HasMaxLength(300);
 
+        // Canonical kilometres, at the same precision as every other stored measurement.
+        builder.Entity<WorkoutTemplateExercise>()
+            .Property(te => te.DefaultDistance)
+            .HasPrecision(10, 4);
+
         // Configure Set
         builder.Entity<Set>()
             .HasOne(s => s.WorkoutExercise)
@@ -281,8 +356,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(s => s.WorkoutExerciseId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Canonical kilograms at four decimals, not two: a display-precision round trip through
+        // lbs is only stable at four (45 lbs -> 20.4117 kg -> 45.00 lbs, where two decimals give
+        // back 44.99). See UnitConverter and WorkoutDomainModelSpecification D2.
         builder.Entity<Set>()
             .Property(s => s.Weight)
-            .HasPrecision(10, 2);
+            .HasPrecision(10, 4);
+
+        // Canonical kilometres.
+        builder.Entity<Set>()
+            .Property(s => s.Distance)
+            .HasPrecision(10, 4);
+
+        builder.Entity<WorkoutExercise>()
+            .Property(we => we.Status)
+            .HasMaxLength(20)
+            .HasDefaultValue(WorkoutExerciseStatuses.Pending);
     }
 }

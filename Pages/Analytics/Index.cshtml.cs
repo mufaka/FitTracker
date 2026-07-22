@@ -22,12 +22,16 @@ public class IndexModel : PageModel
     }
 
     public AdvancedAnalyticsSummary Summary { get; set; } = new();
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
 
     public async Task<IActionResult> OnGetAsync()
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         Summary = await _analyticsService.GetAdvancedDashboardAsync(userId);
         return Page();
@@ -39,8 +43,13 @@ public class IndexModel : PageModel
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
 
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
+
         Summary = await _analyticsService.GetAdvancedDashboardAsync(userId);
-        var pdfBytes = _analyticsPdfExportService.ExportDashboardPdf(Summary);
+
+        // The PDF has no view to convert on its behalf, so it is told which unit to render in.
+        var pdfBytes = _analyticsPdfExportService.ExportDashboardPdf(Summary, UserUnits);
         var fileName = $"fittracker-analytics-{Summary.RangeStart:yyyyMMdd}-{Summary.RangeEnd:yyyyMMdd}.pdf";
 
         return File(pdfBytes, "application/pdf", fileName);

@@ -1,4 +1,4 @@
-using FitTracker.Models;
+﻿using FitTracker.Models;
 using FitTracker.Services;
 using FitTracker.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -9,13 +9,48 @@ namespace FitTracker.Tests.Services;
 public class AnalyticsServiceTests
 {
     [Fact]
-    public void OneRepMaxCalculator_CalculatesEpleyBrzyckiAndAverage()
+    public void OneRepMaxCalculator_AveragesEpleyBrzyckiAndLombardi()
     {
         var estimate = OneRepMaxCalculator.Calculate(225m, 5);
 
         Assert.Equal(262.5m, estimate.Epley);
         Assert.Equal(253.13m, estimate.Brzycki);
-        Assert.Equal(257.82m, estimate.Average);
+        Assert.Equal(264.29m, estimate.Lombardi);
+        Assert.Equal(259.97m, estimate.Average);
+    }
+
+    [Fact]
+    public void OneRepMaxCalculator_TreatsASingleAsAMeasuredMax()
+    {
+        var estimate = OneRepMaxCalculator.Calculate(315m, 1);
+
+        Assert.True(estimate.HasValue);
+        Assert.Equal(315m, estimate.Average);
+        Assert.Equal(315m, estimate.Epley);
+        Assert.Equal(315m, estimate.Brzycki);
+        Assert.Equal(315m, estimate.Lombardi);
+    }
+
+    [Theory]
+    [InlineData(225, 2)]   // below the fitted range
+    [InlineData(225, 11)]  // above it
+    [InlineData(225, 0)]
+    [InlineData(0, 5)]     // bodyweight set carries no load
+    [InlineData(-10, 5)]
+    public void OneRepMaxCalculator_RefusesSetsOutsideTheUsableRange(decimal weight, int reps)
+    {
+        var estimate = OneRepMaxCalculator.Calculate(weight, reps);
+
+        Assert.False(OneRepMaxCalculator.IsEligible(weight, reps));
+        Assert.False(estimate.HasValue);
+        Assert.Equal(0m, estimate.Average);
+    }
+
+    [Fact]
+    public void OneRepMaxCalculator_AcceptsBothEndsOfTheFittedRange()
+    {
+        Assert.True(OneRepMaxCalculator.IsEligible(100m, OneRepMaxCalculator.MinimumEstimateReps));
+        Assert.True(OneRepMaxCalculator.IsEligible(100m, OneRepMaxCalculator.MaximumEstimateReps));
     }
 
     [Fact]
@@ -334,13 +369,13 @@ public class AnalyticsServiceTests
         Assert.Equal(2, summary.SessionCount);
         Assert.Equal(1285m, summary.TotalVolume);
         Assert.Equal(105m, summary.BestWeight);
-        Assert.Equal(120.32m, summary.BestEstimatedOneRepMax);
+        Assert.Equal(121.32m, summary.BestEstimatedOneRepMax);
         Assert.Equal(122.5m, summary.BestOneRepMax);
 
         var prPoint = Assert.Single(summary.ProgressPoints.Where(point => point.HasPersonalRecord));
         Assert.Equal(secondWorkout.Id, prPoint.WorkoutId);
         Assert.Equal(105m, prPoint.PersonalRecordWeight);
-        Assert.Equal(120.32m, prPoint.EstimatedOneRepMax);
+        Assert.Equal(121.32m, prPoint.EstimatedOneRepMax);
         Assert.Equal(525m, summary.ProgressPoints.Last().Volume);
     }
 
@@ -448,7 +483,7 @@ public class PersonalRecordServiceTests
         Assert.Equal(exercise.Id, record.ExerciseId);
         Assert.Equal(105m, record.Weight);
         Assert.Equal(5, record.Reps);
-        Assert.Equal(120.32m, record.OneRepMax);
+        Assert.Equal(121.32m, record.OneRepMax);
     }
 
     private static ApplicationUser CreateUser(string id = "user-5") => new()
@@ -587,10 +622,12 @@ public class WorkoutServiceTests
                 {
                     Exercise = exercise,
                     Order = 1,
+                    // Stored canonically, so the figures below are what "100 lbs" and "95 lbs"
+                    // actually persist as. The suggestion still has to come back in lbs.
                     Sets =
                     {
-                        new Set { SetNumber = 1, Weight = 100m, Reps = 8 },
-                        new Set { SetNumber = 2, Weight = 95m, Reps = 10 }
+                        new Set { SetNumber = 1, Weight = UnitConverter.ToCanonicalWeight(100m, "lbs"), Reps = 8 },
+                        new Set { SetNumber = 2, Weight = UnitConverter.ToCanonicalWeight(95m, "lbs"), Reps = 10 }
                     }
                 }
             }
@@ -603,45 +640,52 @@ public class WorkoutServiceTests
 
         Assert.True(suggestions.ContainsKey(exercise.Id));
         var suggestion = suggestions[exercise.Id];
-        Assert.Equal(105m, suggestion.SuggestedWeight);
+        Assert.Equal(105m, UnitConverter.ToDisplayWeight(suggestion.SuggestedWeight!.Value, "lbs"));
         Assert.Equal(8, suggestion.SuggestedReps);
         Assert.Contains("105", suggestion.Recommendation);
+        Assert.Contains("lbs", suggestion.Recommendation);
     }
 
     [Fact]
-    public async Task StartWorkoutFromTemplateAsync_CopiesTemplateExercisesToWorkout()
+    public async Task GetProgressiveOverloadSuggestionsAsync_ChoosesTheIncrementInTheUsersOwnUnit()
     {
         using var factory = new TestDbContextFactory();
         using var context = factory.CreateContext();
 
         var user = CreateUser();
-        var exerciseOne = new Exercise { Name = "Bench Press", Category = "Strength", Equipment = "Barbell", MuscleGroups = "Chest" };
-        var exerciseTwo = new Exercise { Name = "Row", Category = "Strength", Equipment = "Cable", MuscleGroups = "Back" };
+        var exercise = new Exercise { Name = "Bench Press", Category = "Strength", Equipment = "Barbell", MuscleGroups = "Chest" };
 
         context.Users.Add(user);
-        context.Exercises.AddRange(exerciseOne, exerciseTwo);
-        context.WorkoutTemplates.Add(new WorkoutTemplate
+        context.Exercises.Add(exercise);
+        context.Workouts.Add(new Workout
         {
             UserId = user.Id,
-            Name = "Upper Day",
-            IsActive = true,
-            Exercises =
+            Date = DateTime.UtcNow.AddDays(-3),
+            Duration = 40,
+            IsCompleted = true,
+            WorkoutExercises =
             {
-                new WorkoutTemplateExercise { Exercise = exerciseOne, Order = 1, DefaultSets = 3, DefaultReps = 8 },
-                new WorkoutTemplateExercise { Exercise = exerciseTwo, Order = 2, DefaultSets = 3, DefaultReps = 10 }
+                new WorkoutExercise
+                {
+                    Exercise = exercise,
+                    Order = 1,
+                    Sets = { new Set { SetNumber = 1, Weight = 100m, Reps = 8 } }
+                }
             }
         });
 
         await context.SaveChangesAsync();
 
-        var templateId = await context.WorkoutTemplates.Select(t => t.Id).SingleAsync();
         var service = new WorkoutService(context);
 
-        var workout = await service.StartWorkoutFromTemplateAsync(templateId, user.Id);
+        // The same 100 kg bar: a metric lifter is told to add 2.5 kg, an imperial one 5 lbs.
+        var metric = (await service.GetProgressiveOverloadSuggestionsAsync(user.Id, new[] { exercise.Id }, "kg"))[exercise.Id];
+        var imperial = (await service.GetProgressiveOverloadSuggestionsAsync(user.Id, new[] { exercise.Id }, "lbs"))[exercise.Id];
 
-        Assert.NotNull(workout);
-        Assert.Equal(2, workout!.WorkoutExercises.Count);
-        Assert.Equal(new[] { exerciseOne.Id, exerciseTwo.Id }, workout.WorkoutExercises.OrderBy(we => we.Order).Select(we => we.ExerciseId).ToArray());
+        Assert.Equal(102.5m, UnitConverter.ToDisplayWeight(metric.SuggestedWeight!.Value, "kg"));
+        Assert.Equal(225.46m, UnitConverter.ToDisplayWeight(imperial.SuggestedWeight!.Value, "lbs"));
+        Assert.Contains("kg", metric.Recommendation);
+        Assert.Contains("lbs", imperial.Recommendation);
     }
 
     private static ApplicationUser CreateUser(string id = "user-3") => new()

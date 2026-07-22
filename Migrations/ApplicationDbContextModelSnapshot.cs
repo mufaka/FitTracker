@@ -165,7 +165,7 @@ namespace FitTracker.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("Weight")
-                        .HasPrecision(10, 2)
+                        .HasPrecision(10, 4)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -247,6 +247,9 @@ namespace FitTracker.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("TracksOneRepMax")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("UserId")
                         .HasColumnType("TEXT");
 
@@ -275,7 +278,7 @@ namespace FitTracker.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("OneRepMax")
-                        .HasPrecision(10, 2)
+                        .HasPrecision(10, 4)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Reps")
@@ -286,7 +289,7 @@ namespace FitTracker.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Weight")
-                        .HasPrecision(10, 2)
+                        .HasPrecision(10, 4)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WorkoutId")
@@ -346,7 +349,14 @@ namespace FitTracker.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("Distance")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("Duration")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRpeDerived")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("RPE")
@@ -362,7 +372,7 @@ namespace FitTracker.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal?>("Weight")
-                        .HasPrecision(10, 2)
+                        .HasPrecision(10, 4)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WorkoutExerciseId")
@@ -459,11 +469,16 @@ namespace FitTracker.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("WorkoutPlanId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Date");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("WorkoutPlanId");
 
                     b.ToTable("Workouts");
                 });
@@ -483,6 +498,13 @@ namespace FitTracker.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Pending");
+
                     b.Property<int>("WorkoutId")
                         .HasColumnType("INTEGER");
 
@@ -495,11 +517,91 @@ namespace FitTracker.Migrations
                     b.ToTable("WorkoutExercises");
                 });
 
+            modelBuilder.Entity("FitTracker.Models.WorkoutPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WorkoutPlans");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutPlanExercise", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("TargetDistance")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TargetDurationSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TargetReps")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TargetSets")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("WorkoutPlanId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("WorkoutPlanId");
+
+                    b.ToTable("WorkoutPlanExercises");
+                });
+
             modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CatalogKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -517,10 +619,12 @@ namespace FitTracker.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CatalogKey")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -533,10 +637,17 @@ namespace FitTracker.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("DefaultReps")
+                    b.Property<decimal?>("DefaultDistance")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultDurationSeconds")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("DefaultSets")
+                    b.Property<int?>("DefaultReps")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DefaultSets")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ExerciseId")
@@ -799,7 +910,14 @@ namespace FitTracker.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("FitTracker.Models.WorkoutPlan", "WorkoutPlan")
+                        .WithMany()
+                        .HasForeignKey("WorkoutPlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("User");
+
+                    b.Navigation("WorkoutPlan");
                 });
 
             modelBuilder.Entity("FitTracker.Models.WorkoutExercise", b =>
@@ -821,13 +939,42 @@ namespace FitTracker.Migrations
                     b.Navigation("Workout");
                 });
 
+            modelBuilder.Entity("FitTracker.Models.WorkoutPlan", b =>
+                {
+                    b.HasOne("FitTracker.Models.ApplicationUser", "User")
+                        .WithMany("WorkoutPlans")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutPlanExercise", b =>
+                {
+                    b.HasOne("FitTracker.Models.Exercise", "Exercise")
+                        .WithMany("WorkoutPlanExercises")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FitTracker.Models.WorkoutPlan", "Plan")
+                        .WithMany("Exercises")
+                        .HasForeignKey("WorkoutPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>
                 {
                     b.HasOne("FitTracker.Models.ApplicationUser", "User")
                         .WithMany("WorkoutTemplates")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });
@@ -919,6 +1066,8 @@ namespace FitTracker.Migrations
 
                     b.Navigation("UserChallenges");
 
+                    b.Navigation("WorkoutPlans");
+
                     b.Navigation("WorkoutTemplates");
 
                     b.Navigation("Workouts");
@@ -935,6 +1084,8 @@ namespace FitTracker.Migrations
 
                     b.Navigation("WorkoutExercises");
 
+                    b.Navigation("WorkoutPlanExercises");
+
                     b.Navigation("WorkoutTemplateExercises");
                 });
 
@@ -948,6 +1099,11 @@ namespace FitTracker.Migrations
             modelBuilder.Entity("FitTracker.Models.WorkoutExercise", b =>
                 {
                     b.Navigation("Sets");
+                });
+
+            modelBuilder.Entity("FitTracker.Models.WorkoutPlan", b =>
+                {
+                    b.Navigation("Exercises");
                 });
 
             modelBuilder.Entity("FitTracker.Models.WorkoutTemplate", b =>

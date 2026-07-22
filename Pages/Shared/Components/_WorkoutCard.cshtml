@@ -1,4 +1,4 @@
-@model FitTracker.Models.Workout
+﻿@model FitTracker.Models.Workout
 
 <a asp-page="/Workouts/Details" asp-route-id="@Model.Id" class="surface-card block h-full transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-xl dark:hover:border-primary-500/30">
     <div class="flex h-full flex-col">
@@ -9,13 +9,14 @@
                     <span class="chip">@Model.Duration min</span>
                 </div>
                 <h3 class="mt-4 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">@Model.Date.ToString("MMMM dd, yyyy")</h3>
-                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutExercises.Count exercises · @Model.WorkoutExercises.Sum(we => we.Sets.Count) total sets</p>
+                @* Planned-but-not-done rows exist now, so a bare Count would overstate the session. *@
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Model.WorkoutExercises.Count(we => we.IsPerformed) exercises · @Model.WorkoutExercises.Sum(we => we.Sets.Count) total sets</p>
             </div>
             <span class="text-sm font-semibold text-primary-600 dark:text-primary-300">Open →</span>
         </div>
 
         <div class="mt-5 space-y-3">
-            @foreach (var workoutExercise in Model.WorkoutExercises.OrderBy(we => we.Order))
+            @foreach (var workoutExercise in Model.WorkoutExercises.Where(we => we.IsPerformed).OrderBy(we => we.Order))
             {
                 <div class="flex items-center justify-between rounded-[1.25rem] border border-slate-200/70 bg-white/70 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900/70">
                     <span class="font-medium text-slate-900 dark:text-white">@workoutExercise.Exercise.Name</span>

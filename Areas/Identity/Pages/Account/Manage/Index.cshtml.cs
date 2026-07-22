@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using FitTracker.Models;
+using FitTracker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -64,7 +65,7 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
 
             [Required]
             [Display(Name = "Preferred units")]
-            public string PreferredUnits { get; set; } = "lbs";
+            public string PreferredUnits { get; set; } = UnitConverter.DefaultWeightUnit;
 
             [Range(15, 600)]
             [Display(Name = "Default rest timer (seconds)")]
@@ -89,7 +90,7 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
             Input = new InputModel
             {
                 PhoneNumber = phoneNumber,
-                PreferredUnits = string.IsNullOrWhiteSpace(user.PreferredUnits) ? "lbs" : user.PreferredUnits,
+                PreferredUnits = UnitConverter.NormalizeWeightUnit(user.PreferredUnits),
                 DefaultRestTimer = user.DefaultRestTimer > 0 ? user.DefaultRestTimer : 90,
                 Goals = user.Goals
             };
@@ -132,7 +133,9 @@ namespace FitTracker.Areas.Identity.Pages.Account.Manage
                 }
             }
 
-            user.PreferredUnits = Input.PreferredUnits;
+            // Normalized on the way in: this column is the input to every conversion in the app,
+            // so free text must not reach it however the form was posted.
+            user.PreferredUnits = UnitConverter.NormalizeWeightUnit(Input.PreferredUnits);
             user.DefaultRestTimer = Input.DefaultRestTimer;
             user.Goals = Input.Goals?.Trim();
 

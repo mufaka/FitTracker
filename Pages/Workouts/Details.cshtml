@@ -1,4 +1,4 @@
-@page "{id:int}"
+﻿@page "{id:int}"
 @model DetailsModel
 @{
     ViewData["Title"] = $"Workout - {Model.Workout?.Date.ToString("MMM dd, yyyy")}";
@@ -19,7 +19,7 @@
                     <p class="page-description">Dive into the full session breakdown, from total volume to each logged set.</p>
                     <div class="mt-5 flex flex-wrap gap-2">
                         <span class="chip chip-primary">@Model.Workout.Duration min</span>
-                        <span class="chip">@Model.Workout.WorkoutExercises.Count exercises</span>
+                        <span class="chip">@Model.Workout.WorkoutExercises.Count(we => we.IsPerformed) exercises</span>
                         <span class="chip">@Model.TotalSets sets</span>
                     </div>
                 </div>
@@ -60,8 +60,8 @@
                     {
                         <div class="rounded-[1.5rem] border border-amber-200/80 bg-amber-50/80 p-5 dark:border-amber-500/20 dark:bg-amber-500/10">
                             <p class="text-sm font-medium text-slate-500 dark:text-slate-400">@record.Exercise.Name</p>
-                            <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@record.Weight.ToString("0.##") lbs × @record.Reps</p>
-                            <p class="mt-2 text-sm text-amber-700 dark:text-amber-200">Estimated 1RM: @record.OneRepMax.ToString("0.##")</p>
+                            <p class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">@UnitConverter.FormatWeight(record.Weight, Model.UserUnits) × @record.Reps</p>
+                            <p class="mt-2 text-sm text-amber-700 dark:text-amber-200">Estimated 1RM: @UnitConverter.FormatWeight(record.OneRepMax, Model.UserUnits)</p>
                         </div>
                     }
                 </div>
@@ -103,8 +103,8 @@
             <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="metric-card">
                     <p class="metric-label">Total volume</p>
-                    <p class="metric-value text-primary-600 dark:text-primary-300">@Model.TotalVolume.ToString("N0")</p>
-                    <p class="metric-meta">Pounds moved</p>
+                    <p class="metric-value text-primary-600 dark:text-primary-300">@UnitConverter.FormatVolume(Model.TotalVolume, Model.UserUnits)</p>
+                    <p class="metric-meta">Total weight moved</p>
                 </div>
                 <div class="metric-card">
                     <p class="metric-label">Total sets</p>
@@ -127,12 +127,27 @@
         <section class="space-y-6">
             @foreach (var workoutExercise in Model.Workout.WorkoutExercises.OrderBy(we => we.Order))
             {
-                <div class="surface-card">
+                var wasSkipped = workoutExercise.Status == WorkoutExerciseStatuses.Skipped;
+                @* A skipped exercise stays on the record, muted rather than removed (WDM-UI-16):
+                   what was deliberately not done is part of what happened. *@
+                <div class="surface-card @(wasSkipped ? "border-dashed opacity-90" : string.Empty)">
                     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                             <div class="flex flex-wrap gap-2">
                                 <span class="chip chip-primary">@workoutExercise.Exercise.Equipment</span>
                                 <span class="chip">@workoutExercise.Sets.Count set@(workoutExercise.Sets.Count == 1 ? string.Empty : "s")</span>
+                                @if (wasSkipped)
+                                {
+                                    <span class="chip chip-danger">Skipped</span>
+                                }
+                                else if (WorkoutExerciseStatuses.IsEffort(workoutExercise.Status))
+                                {
+                                    <span class="chip chip-success">Felt @workoutExercise.Status.ToLowerInvariant()</span>
+                                }
+                                else if (!workoutExercise.IsPerformed)
+                                {
+                                    <span class="chip">Not performed</span>
+                                }
                             </div>
                             <h2 class="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@workoutExercise.Exercise.Name</h2>
                             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@workoutExercise.Exercise.MuscleGroups</p>
@@ -148,6 +163,8 @@
                                         <th>Set</th>
                                         <th>Weight</th>
                                         <th>Reps</th>
+                                        <th>Duration</th>
+                                        <th>Distance</th>
                                         <th>Volume</th>
                                         <th>RPE</th>
                                     </tr>
@@ -158,16 +175,20 @@
                                         var volume = (set.Weight ?? 0) * (set.Reps ?? 0);
                                         <tr>
                                             <td class="font-semibold">@set.SetNumber</td>
-                                            <td>@(set.Weight?.ToString("F1") ?? "-") lbs</td>
+                                            <td>@(UnitConverter.FormatWeight(set.Weight, Model.UserUnits) is { Length: > 0 } weight ? weight : "-")</td>
                                             <td>@(set.Reps?.ToString() ?? "-")</td>
-                                            <td>@volume.ToString("F0") lbs</td>
+                                            <td>@(UnitConverter.FormatDuration(set.Duration) is { Length: > 0 } duration ? duration : "-")</td>
+                                            <td>@(UnitConverter.FormatDistance(set.Distance, Model.UserUnits) is { Length: > 0 } distance ? distance : "-")</td>
+                                            <td>@UnitConverter.FormatVolume(volume, Model.UserUnits)</td>
                                             <td>@(set.RPE?.ToString() ?? "-")</td>
                                         </tr>
                                     }
                                     <tr class="bg-slate-100/70 font-semibold dark:bg-slate-900/70">
                                         <td colspan="2">Totals</td>
                                         <td>@workoutExercise.Sets.Sum(s => s.Reps ?? 0)</td>
-                                        <td>@workoutExercise.Sets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0)).ToString("F0") lbs</td>
+                                        <td>@(UnitConverter.FormatDuration(workoutExercise.Sets.Sum(s => s.Duration ?? 0)) is { Length: > 0 } totalDuration ? totalDuration : "-")</td>
+                                        <td>@(UnitConverter.FormatDistance(workoutExercise.Sets.Sum(s => s.Distance ?? 0) is var totalDistance && totalDistance > 0 ? totalDistance : null, Model.UserUnits) is { Length: > 0 } distanceTotal ? distanceTotal : "-")</td>
+                                        <td>@(UnitConverter.FormatVolume(workoutExercise.Sets.Sum(s => (s.Weight ?? 0) * (s.Reps ?? 0)), Model.UserUnits))</td>
                                         <td>-</td>
                                     </tr>
                                 </tbody>

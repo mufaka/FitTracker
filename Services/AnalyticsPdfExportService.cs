@@ -6,9 +6,14 @@ namespace FitTracker.Services;
 
 public interface IAnalyticsPdfExportService
 {
-    byte[] ExportDashboardPdf(AdvancedAnalyticsSummary summary);
+    byte[] ExportDashboardPdf(AdvancedAnalyticsSummary summary, string displayUnit);
 }
 
+/// <summary>
+/// A PDF has no view to convert on its behalf, so this is one of the two places a service turns
+/// canonical measurements into the user's display unit itself. It has no database of its own, so
+/// the caller supplies the unit.
+/// </summary>
 public class AnalyticsPdfExportService : IAnalyticsPdfExportService
 {
     static AnalyticsPdfExportService()
@@ -16,7 +21,7 @@ public class AnalyticsPdfExportService : IAnalyticsPdfExportService
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public byte[] ExportDashboardPdf(AdvancedAnalyticsSummary summary)
+    public byte[] ExportDashboardPdf(AdvancedAnalyticsSummary summary, string displayUnit)
     {
         return Document.Create(document =>
         {
@@ -44,35 +49,35 @@ public class AnalyticsPdfExportService : IAnalyticsPdfExportService
                     {
                         row.RelativeItem().Element(container => ComposeMetricCard(container, "Completed workouts", summary.TotalWorkouts.ToString()));
                         row.RelativeItem().Element(container => ComposeMetricCard(container, "Average duration", $"{summary.AverageWorkoutDuration:0.0} min"));
-                        row.RelativeItem().Element(container => ComposeMetricCard(container, "Average volume", summary.AverageVolumePerWorkout.ToString("N0")));
+                        row.RelativeItem().Element(container => ComposeMetricCard(container, "Average volume", UnitConverter.FormatVolume(summary.AverageVolumePerWorkout, displayUnit)));
                         row.RelativeItem().Element(container => ComposeMetricCard(container, "PRs", summary.TotalPersonalRecords.ToString()));
                     });
 
                     column.Item().Element(container => ComposeListSection(
                         container,
                         "Most worked muscle groups",
-                        summary.MostWorkedMuscleGroups.Select(item => $"{item.MuscleGroup}: {item.Volume:N0} volume across {item.WorkoutCount} workouts")));
+                        summary.MostWorkedMuscleGroups.Select(item => $"{item.MuscleGroup}: {UnitConverter.FormatVolume(item.Volume, displayUnit)} volume across {item.WorkoutCount} workouts")));
 
                     column.Item().Element(container => ComposeListSection(
                         container,
                         "Least worked muscle groups",
-                        summary.LeastWorkedMuscleGroups.Select(item => $"{item.MuscleGroup}: {item.Volume:N0} volume across {item.WorkoutCount} workouts")));
+                        summary.LeastWorkedMuscleGroups.Select(item => $"{item.MuscleGroup}: {UnitConverter.FormatVolume(item.Volume, displayUnit)} volume across {item.WorkoutCount} workouts")));
 
                     column.Item().Element(container => ComposeListSection(
                         container,
                         "Weekly volume trend",
-                        summary.VolumeTrend.Select(point => $"{point.Label}: {point.Volume:N0} volume, {point.WorkoutCount} workout(s), {point.AverageDuration:0.0} min avg")));
+                        summary.VolumeTrend.Select(point => $"{point.Label}: {UnitConverter.FormatVolume(point.Volume, displayUnit)} volume, {point.WorkoutCount} workout(s), {point.AverageDuration:0.0} min avg")));
 
                     column.Item().Element(container => ComposeListSection(
                         container,
                         "PR timeline",
-                        summary.PersonalRecordTimeline.Select(point => $"{point.Label}: {point.RecordCount} PR(s), best 1RM {point.BestOneRepMax:0.##}")));
+                        summary.PersonalRecordTimeline.Select(point => $"{point.Label}: {point.RecordCount} PR(s), best 1RM {UnitConverter.FormatWeight(point.BestOneRepMax, displayUnit)}")));
 
                     column.Item().Element(container => ComposeListSection(
                         container,
                         "Recent personal records",
                         summary.RecentPersonalRecords.Any()
-                            ? summary.RecentPersonalRecords.Select(record => $"{record.Date:MMM dd, yyyy} - {record.Exercise.Name}: {record.Weight:0.##} x {record.Reps} (1RM {record.OneRepMax:0.##})")
+                            ? summary.RecentPersonalRecords.Select(record => $"{record.Date:MMM dd, yyyy} - {record.Exercise.Name}: {UnitConverter.FormatWeight(record.Weight, displayUnit)} x {record.Reps} (1RM {UnitConverter.FormatWeight(record.OneRepMax, displayUnit)})")
                             : ["No personal records in the current range."]));
                 });
 

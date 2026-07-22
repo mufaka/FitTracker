@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "Exercise Library";
@@ -36,6 +36,7 @@
                         <option value="Strength" selected="@(Model.CategoryFilter == "Strength")">Strength</option>
                         <option value="Cardio" selected="@(Model.CategoryFilter == "Cardio")">Cardio</option>
                         <option value="Core" selected="@(Model.CategoryFilter == "Core")">Core</option>
+                        <option value="Mobility" selected="@(Model.CategoryFilter == "Mobility")">Mobility</option>
                     </select>
                 </div>
                 <div>
@@ -47,6 +48,7 @@
                         <option value="Bodyweight" selected="@(Model.EquipmentFilter == "Bodyweight")">Bodyweight</option>
                         <option value="Cable" selected="@(Model.EquipmentFilter == "Cable")">Cable</option>
                         <option value="Machine" selected="@(Model.EquipmentFilter == "Machine")">Machine</option>
+                        <option value="Resistance Band" selected="@(Model.EquipmentFilter == "Resistance Band")">Resistance Band</option>
                     </select>
                 </div>
             </div>

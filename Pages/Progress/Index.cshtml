@@ -15,6 +15,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-3">
                 <span class="btn btn-primary">Overall progress</span>
+                <a asp-page="/Progress/OneRepMax" class="btn btn-secondary">1RM tracking</a>
                 <a asp-page="/Analytics/Daily" class="btn btn-secondary">Analytics</a>
                 <a asp-page="/Workouts/History" class="btn btn-secondary">Workout history</a>
             </div>
@@ -34,12 +35,12 @@
         </div>
         <div class="metric-card">
             <p class="metric-label">Total volume</p>
-            <p class="metric-value text-violet-600 dark:text-violet-300">@Model.Summary.TotalVolume.ToString("N0")</p>
+            <p class="metric-value text-violet-600 dark:text-violet-300">@UnitConverter.FormatVolume(Model.Summary.TotalVolume, Model.UserUnits)</p>
             <p class="metric-meta">Weight × reps across the range</p>
         </div>
         <div class="metric-card">
             <p class="metric-label">Average weekly volume</p>
-            <p class="metric-value text-amber-600 dark:text-amber-300">@Model.Summary.AverageWeeklyVolume.ToString("N0")</p>
+            <p class="metric-value text-amber-600 dark:text-amber-300">@UnitConverter.FormatVolume(Model.Summary.AverageWeeklyVolume, Model.UserUnits)</p>
             <p class="metric-meta">Average across all 12 weeks</p>
         </div>
     </section>
@@ -98,7 +99,7 @@
                             <tr>
                                 <td class="font-semibold">@point.PeriodStart.ToString("MMM dd, yyyy")</td>
                                 <td>@point.Workouts</td>
-                                <td>@point.Volume.ToString("N0")</td>
+                                <td>@UnitConverter.FormatVolume(point.Volume, Model.UserUnits)</td>
                             </tr>
                         }
                     </tbody>
@@ -123,7 +124,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if (Model.Summary.LatestBodyWeight.HasValue)
                 {
-                    <span class="chip">Latest @Model.Summary.LatestBodyWeight.Value.ToString("0.##")</span>
+                    <span class="chip">Latest @UnitConverter.FormatWeight(Model.Summary.LatestBodyWeight, Model.UserUnits)</span>
                 }
                 @if (Model.Summary.BodyWeightChange.HasValue)
                 {
@@ -132,7 +133,7 @@
                         ? "text-emerald-600 dark:text-emerald-300"
                         : "text-amber-600 dark:text-amber-300";
                     <span class="chip @weightChangeClass">
-                        @(weightChange > 0 ? "+" : string.Empty)@weightChange.ToString("0.##") over range
+                        @(weightChange > 0 ? "+" : string.Empty)@UnitConverter.FormatWeight(weightChange, Model.UserUnits) over range
                     </span>
                 }
                 <a asp-page="/Measurements" class="btn btn-secondary">Measurements</a>
@@ -154,12 +155,12 @@
                     </div>
                     <div class="metric-card">
                         <p class="metric-label">Starting weight</p>
-                        <p class="metric-value text-slate-900 dark:text-white">@Model.Summary.BodyWeightData.First().Value.ToString("0.##")</p>
+                        <p class="metric-value text-slate-900 dark:text-white">@UnitConverter.FormatWeight(Model.Summary.BodyWeightData.First().Value, Model.UserUnits)</p>
                         <p class="metric-meta">First in-range body weight entry</p>
                     </div>
                     <div class="metric-card">
                         <p class="metric-label">Latest weight</p>
-                        <p class="metric-value text-slate-900 dark:text-white">@Model.Summary.BodyWeightData.Last().Value.ToString("0.##")</p>
+                        <p class="metric-value text-slate-900 dark:text-white">@UnitConverter.FormatWeight(Model.Summary.BodyWeightData.Last().Value, Model.UserUnits)</p>
                         <p class="metric-meta">Most recent recorded body weight</p>
                     </div>
                 </div>
@@ -179,10 +180,10 @@
     <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
     <script>
         const overallLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Label)));
-        const overallVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Volume)));
+        const overallVolumes = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => UnitConverter.ToDisplayVolume(point.Volume, Model.UserUnits))));
         const overallWorkouts = @Html.Raw(JsonSerializer.Serialize(Model.Summary.WeeklyData.Select(point => point.Workouts)));
         const overallBodyWeightLabels = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Label)));
-        const overallBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => point.Value)));
+        const overallBodyWeights = @Html.Raw(JsonSerializer.Serialize(Model.Summary.BodyWeightData.Select(point => UnitConverter.ToDisplayWeight(point.Value, Model.UserUnits))));
 
         const isDarkMode = document.documentElement.classList.contains('dark');
         const axisColor = isDarkMode ? '#cbd5e1' : '#475569';

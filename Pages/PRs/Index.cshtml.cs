@@ -27,11 +27,16 @@ public class IndexModel : PageModel
 
     public List<IGrouping<int, PersonalRecord>> RecordsByExercise { get; set; } = new();
 
+    public string UserUnits { get; set; } = UnitConverter.DefaultWeightUnit;
+
     public async Task<IActionResult> OnGetAsync()
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId))
             return RedirectToPage("/Account/Login", new { area = "Identity" });
+
+        var user = await _userManager.GetUserAsync(User);
+        UserUnits = UnitConverter.NormalizeWeightUnit(user?.PreferredUnits);
 
         var records = await _personalRecordService.GetRecordsAsync(userId, StartDate, EndDate);
         RecordsByExercise = records

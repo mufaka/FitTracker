@@ -1,4 +1,4 @@
-using FitTracker.Data;
+﻿using FitTracker.Data;
 using FitTracker.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,13 +46,19 @@ public class WorkoutSuggestionService : IWorkoutSuggestionService
             .Where(workoutExercise => workoutExercise.Workout.UserId == userId &&
                                       workoutExercise.Workout.IsCompleted &&
                                       workoutExercise.Workout.Date >= periodStart)
+            // Everything below counts rows, so the rows have to represent real training. A skipped
+            // chest exercise would otherwise raise that muscle group's usage and push it out of the
+            // least-worked focus, which is exactly backwards (WDM-55).
+            .Where(WorkoutExerciseStatuses.PerformedPredicate)
             .ToListAsync();
 
-        var activeTemplates = await _context.WorkoutTemplates
+        // Plans, not templates: a template can no longer start a workout, so suggesting one would
+        // point at a dead end (WDM-28).
+        var activePlans = await _context.WorkoutPlans
             .AsNoTracking()
-            .Include(template => template.Exercises)
-                .ThenInclude(templateExercise => templateExercise.Exercise)
-            .Where(template => template.UserId == userId && template.IsActive)
+            .Include(plan => plan.Exercises)
+                .ThenInclude(planExercise => planExercise.Exercise)
+            .Where(plan => plan.UserId == userId && plan.IsActive && !plan.IsDeleted)
             .ToListAsync();
 
         var allMuscleGroups = allExercises
@@ -112,6 +118,8 @@ public class WorkoutSuggestionService : IWorkoutSuggestionService
             .Where(workoutExercise => suggestedExerciseIds.Contains(workoutExercise.ExerciseId) &&
                                       workoutExercise.Workout.UserId == userId &&
                                       workoutExercise.Workout.IsCompleted)
+            // Otherwise "last performed" reports the date of an attempt that was skipped.
+            .Where(WorkoutExerciseStatuses.PerformedPredicate)
             .GroupBy(workoutExercise => workoutExercise.ExerciseId)
             .Select(group => new
             {
@@ -135,38 +143,38 @@ public class WorkoutSuggestionService : IWorkoutSuggestionService
             })
             .ToList();
 
-        var templateSuggestion = activeTemplates
-            .Select(template => new
+        var planSuggestion = activePlans
+            .Select(plan => new
             {
-                Template = template,
-                FocusMatchCount = template.Exercises.Count(templateExercise => CountFocusMatches(templateExercise.Exercise.MuscleGroups, focusMuscleGroups) > 0),
-                RecentUsageScore = template.Exercises.Sum(templateExercise => recentExerciseUsage.GetValueOrDefault(templateExercise.ExerciseId, 0))
+                Plan = plan,
+                FocusMatchCount = plan.Exercises.Count(planExercise => CountFocusMatches(planExercise.Exercise.MuscleGroups, focusMuscleGroups) > 0),
+                RecentUsageScore = plan.Exercises.Sum(planExercise => recentExerciseUsage.GetValueOrDefault(planExercise.ExerciseId, 0))
             })
             .Where(candidate => !recentWorkoutExercises.Any() || candidate.FocusMatchCount > 0)
             .OrderByDescending(candidate => candidate.FocusMatchCount)
             .ThenBy(candidate => candidate.RecentUsageScore)
-            .ThenBy(candidate => candidate.Template.Name)
-            .Select(candidate => new SuggestedTemplateItem
+            .ThenBy(candidate => candidate.Plan.Name)
+            .Select(candidate => new SuggestedPlanItem
             {
-                TemplateId = candidate.Template.Id,
-                Name = candidate.Template.Name,
-                Description = candidate.Template.Description,
-                ExerciseCount = candidate.Template.Exercises.Count,
-                FocusMuscleGroups = candidate.Template.Exercises
-                    .SelectMany(templateExercise => SplitMuscleGroups(templateExercise.Exercise.MuscleGroups))
+                PlanId = candidate.Plan.Id,
+                Name = candidate.Plan.Name,
+                Description = candidate.Plan.Description,
+                ExerciseCount = candidate.Plan.Exercises.Count,
+                FocusMuscleGroups = candidate.Plan.Exercises
+                    .SelectMany(planExercise => SplitMuscleGroups(planExercise.Exercise.MuscleGroups))
                     .Where(muscleGroup => focusMuscleGroups.Contains(muscleGroup, StringComparer.OrdinalIgnoreCase))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(muscleGroup => muscleGroup)
                     .ToList(),
                 Reason = recentWorkoutExercises.Any()
                     ? $"Best match for your least-worked focus: {string.Join(", ", focusMuscleGroups)}."
-                    : "A strong starting point based on your saved templates."
+                    : "A strong starting point based on your saved plans."
             })
             .FirstOrDefault();
 
         var summary = recentWorkoutExercises.Any()
             ? $"{string.Join(" and ", focusMuscleGroups)} have had the least attention over your last {normalizedRecentDays} days."
-            : "Start with a balanced suggestion based on your exercise library and saved templates.";
+            : "Start with a balanced suggestion based on your exercise library and saved plans.";
 
         return new WorkoutSuggestionSummary
         {
@@ -174,7 +182,7 @@ public class WorkoutSuggestionService : IWorkoutSuggestionService
             Summary = summary,
             FocusMuscleGroups = focusMuscleGroups,
             SuggestedExercises = suggestedExercises,
-            TemplateSuggestion = templateSuggestion
+            PlanSuggestion = planSuggestion
         };
     }
 
@@ -209,8 +217,8 @@ public class WorkoutSuggestionSummary
     public string Summary { get; set; } = string.Empty;
     public List<string> FocusMuscleGroups { get; set; } = new();
     public List<SuggestedExerciseItem> SuggestedExercises { get; set; } = new();
-    public SuggestedTemplateItem? TemplateSuggestion { get; set; }
-    public bool HasSuggestions => FocusMuscleGroups.Any() || SuggestedExercises.Any() || TemplateSuggestion != null;
+    public SuggestedPlanItem? PlanSuggestion { get; set; }
+    public bool HasSuggestions => FocusMuscleGroups.Any() || SuggestedExercises.Any() || PlanSuggestion != null;
 }
 
 public class SuggestedExerciseItem
@@ -224,9 +232,9 @@ public class SuggestedExerciseItem
     public string Reason { get; set; } = string.Empty;
 }
 
-public class SuggestedTemplateItem
+public class SuggestedPlanItem
 {
-    public int TemplateId { get; set; }
+    public int PlanId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int ExerciseCount { get; set; }

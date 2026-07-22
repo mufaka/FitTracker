@@ -52,7 +52,7 @@ public class AnalyticsPdfExportServiceTests
             }
         };
 
-        var pdf = service.ExportDashboardPdf(summary);
+        var pdf = service.ExportDashboardPdf(summary, UnitConverter.Pounds);
 
         Assert.NotNull(pdf);
         Assert.True(pdf.Length > 500);

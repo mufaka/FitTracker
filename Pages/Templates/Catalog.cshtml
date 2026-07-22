@@ -1,0 +1,116 @@
+@page
+@model FitTracker.Pages.Templates.CatalogModel
+@{
+    ViewData["Title"] = "Template Catalog";
+
+    // Every part of a prescription is optional, so the chip shows whichever parts were declared.
+    // Distance is stored canonically and converted here like any other rendered measurement.
+    string Prescription(WorkoutTemplateExercise exercise)
+    {
+        var parts = new List<string>();
+
+        if (exercise.DefaultSets.HasValue && exercise.DefaultReps.HasValue)
+            parts.Add($"{exercise.DefaultSets} × {exercise.DefaultReps}");
+        else if (exercise.DefaultSets.HasValue)
+            parts.Add($"{exercise.DefaultSets} sets");
+        else if (exercise.DefaultReps.HasValue)
+            parts.Add($"{exercise.DefaultReps} reps");
+
+        if (exercise.DefaultDurationSeconds.HasValue)
+            parts.Add(UnitConverter.FormatDuration(exercise.DefaultDurationSeconds));
+
+        if (exercise.DefaultDistance.HasValue)
+            parts.Add(UnitConverter.FormatDistance(exercise.DefaultDistance, Model.UserUnits));
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : "No target";
+    }
+}
+
+<div class="page-shell">
+    <section class="hero-card">
+        <div class="page-header gap-8">
+            <div>
+                <p class="page-eyebrow">Built-in catalog</p>
+                <h1 class="page-title">Ready-made blocks to build plans from.</h1>
+                <p class="page-description">
+                    Every one of these ships with FitTracker and is available to everybody. They are building
+                    blocks rather than whole sessions: copy one to make it yours, or combine several into a
+                    plan and train from that.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                @if (Model.IsSignedIn)
+                {
+                    <a asp-page="/Templates/Index" class="btn btn-primary">Your templates</a>
+                    <a asp-page="/Plans/Create" class="btn btn-secondary">Build a plan</a>
+                }
+                else
+                {
+                    @* Nothing here is personal, so an anonymous visitor gets the whole catalog and an
+                       invitation rather than a redirect. *@
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary">Create an account</a>
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-secondary">Sign in</a>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (Model.Templates.Any())
+    {
+        <div class="grid gap-6 xl:grid-cols-2">
+            @foreach (var template in Model.Templates)
+            {
+                var orderedExercises = template.Exercises.OrderBy(te => te.Order).ToList();
+                <section class="surface-card">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="chip chip-primary">Built-in</span>
+                                <span class="chip">@orderedExercises.Count exercise@(orderedExercises.Count == 1 ? string.Empty : "s")</span>
+                            </div>
+                            <h2 class="mt-4 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">@template.Name</h2>
+                            @if (!string.IsNullOrWhiteSpace(template.Description))
+                            {
+                                <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">@template.Description</p>
+                            }
+                        </div>
+                        @if (Model.IsSignedIn)
+                        {
+                            <form method="post" asp-page="/Templates/Index" asp-page-handler="Copy" asp-route-id="@template.Id">
+                                <button type="submit" class="btn btn-secondary">Copy</button>
+                            </form>
+                        }
+                    </div>
+
+                    @* The whole point of the catalog is being able to judge a template before using
+                       it, so every exercise is listed rather than just a count (WDM-UI-06). *@
+                    <div class="mt-6 space-y-3">
+                        @foreach (var exercise in orderedExercises)
+                        {
+                            <div class="rounded-[1.25rem] border border-slate-200/80 bg-white/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="font-semibold text-slate-950 dark:text-white">@exercise.Order. @exercise.Exercise.Name</p>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">@exercise.Exercise.MuscleGroups · @exercise.Exercise.Equipment</p>
+                                        @if (!string.IsNullOrWhiteSpace(exercise.Notes))
+                                        {
+                                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">@exercise.Notes</p>
+                                        }
+                                    </div>
+                                    <span class="chip">@Prescription(exercise)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <h2 class="text-xl font-semibold text-slate-950 dark:text-white">The catalog is empty</h2>
+            <p class="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Built-in templates are seeded when the application starts, so this should not happen for long.</p>
+        </div>
+    }
+</div>

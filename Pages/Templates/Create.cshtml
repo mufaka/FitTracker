@@ -1,4 +1,4 @@
-@page "{id:int?}"
+﻿@page "{id:int?}"
 @model FitTracker.Pages.Templates.CreateModel
 @{
     ViewData["Title"] = Model.IsEditMode ? "Edit Template" : "Create Template";
@@ -47,9 +47,9 @@
                     <input asp-for="Template.Name" class="input" placeholder="Upper body push" />
                     <span asp-validation-for="Template.Name" class="mt-2 block text-sm text-red-500"></span>
                 </div>
-                <label class="flex items-center gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/70 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200">
-                    <input asp-for="Template.IsActive" class="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500" />
-                    <span>Template is active and ready to start</span>
+                <label class="checkbox-field rounded-[1.5rem] border border-slate-200/80 bg-white/70 px-4 py-3 font-medium dark:border-slate-800 dark:bg-slate-900/70">
+                    <input asp-for="Template.IsActive" />
+                    <span>Template is available when building plans</span>
                 </label>
             </div>
 
@@ -109,18 +109,31 @@
                                 </div>
                             </div>
 
-                            <div class="mt-6 grid gap-4 md:grid-cols-3">
+                            @* Every target is optional: a stretch prescribes a duration and no reps,
+                               a run a distance and neither. Leave what does not apply blank.
+                               min/max come from the [Range] attributes via Html5ValidationTagHelper. *@
+                            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                                 <div>
-                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultSets">Default sets</label>
-                                    <input asp-for="Template.Exercises[i].DefaultSets" type="number" min="1" class="input" />
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultSets">Sets</label>
+                                    <input asp-for="Template.Exercises[i].DefaultSets" type="number" class="input" placeholder="—" />
                                     <span asp-validation-for="Template.Exercises[i].DefaultSets" class="mt-2 block text-sm text-red-500"></span>
                                 </div>
                                 <div>
-                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultReps">Default reps</label>
-                                    <input asp-for="Template.Exercises[i].DefaultReps" type="number" min="1" class="input" />
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultReps">Reps</label>
+                                    <input asp-for="Template.Exercises[i].DefaultReps" type="number" class="input" placeholder="—" />
                                     <span asp-validation-for="Template.Exercises[i].DefaultReps" class="mt-2 block text-sm text-red-500"></span>
                                 </div>
-                                <div class="md:col-span-3">
+                                <div>
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultDurationSeconds">Duration (seconds)</label>
+                                    <input asp-for="Template.Exercises[i].DefaultDurationSeconds" type="number" class="input" placeholder="—" />
+                                    <span asp-validation-for="Template.Exercises[i].DefaultDurationSeconds" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div>
+                                    <label class="input-label" asp-for="Template.Exercises[i].DefaultDistance">Distance (@UnitConverter.DistanceUnitLabel(Model.UserUnits))</label>
+                                    <input asp-for="Template.Exercises[i].DefaultDistance" type="number" step="0.01" class="input" placeholder="—" />
+                                    <span asp-validation-for="Template.Exercises[i].DefaultDistance" class="mt-2 block text-sm text-red-500"></span>
+                                </div>
+                                <div class="md:col-span-2 xl:col-span-4">
                                     <label class="input-label" asp-for="Template.Exercises[i].Notes">Notes</label>
                                     <textarea asp-for="Template.Exercises[i].Notes" rows="2" class="input" placeholder="Optional cue or reminder"></textarea>
                                 </div>

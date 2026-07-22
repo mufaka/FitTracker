@@ -63,6 +63,10 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Deployment scripts, guide and build output. Kept out of the repository
+# because they carry host names, addresses and ports for a private deployment.
+Deploy/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 

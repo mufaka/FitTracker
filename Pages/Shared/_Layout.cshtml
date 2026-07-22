@@ -24,6 +24,15 @@
     @* iOS takes its home screen icon from here rather than the manifest. *@
     <link rel="apple-touch-icon" href="~/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="FitTracker" />
+    @*
+        Without these the home screen entry opens as a Safari tab with browser
+        chrome instead of as a standalone app - the manifest's display mode on
+        its own has never been enough on iOS. mobile-web-app-capable is the
+        standardised spelling of the same thing, kept alongside the prefixed one.
+    *@
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>@ViewData["Title"] - FitTracker</title>
     <script>
         (() => {
@@ -54,7 +63,7 @@
         <div class="min-h-screen lg:grid lg:grid-cols-[19rem_minmax(0,1fr)]">
             <aside class="hidden lg:block">
                 <div class="app-sidebar sticky top-0 h-screen px-5 py-6">
-                    <div class="flex items-center gap-4 px-3">
+                    <div class="flex shrink-0 items-center gap-4 px-3">
                         <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/30">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -66,7 +75,9 @@
                         </div>
                     </div>
 
-                    <nav class="mt-8 space-y-2">
+                    @* Same reasoning as the mobile drawer below: the link list
+                       scrolls, the account card and sign-out stay pinned. *@
+                    <nav class="mt-8 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain">
                         <a asp-page="/Index" class="@NavClasses("/Index")">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                             <span>Dashboard</span>
@@ -129,7 +140,7 @@
                         </a>
                     </nav>
 
-                    <div class="mt-auto space-y-4 px-3">
+                    <div class="mt-4 shrink-0 space-y-4 px-3">
                         <div class="rounded-[1.75rem] border border-white/70 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-900/85">
                             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Signed in</p>
                             <p class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@displayName</p>
@@ -176,7 +187,7 @@
                        x-transition:leave-end="-translate-x-full opacity-0"
                        class="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] px-4 py-4 lg:hidden">
                     <div class="app-sidebar h-full rounded-[2rem] px-5 py-6">
-                        <div class="mb-8 flex items-center justify-between">
+                        <div class="mb-8 flex shrink-0 items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-500 dark:text-primary-300">FitTracker</p>
                                 <p class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">@displayName</p>
@@ -186,7 +197,16 @@
                             </button>
                         </div>
 
-                        <nav class="space-y-2">
+                        @*
+                            The link list is what scrolls, so the title and the
+                            sign-out button stay put. min-h-0 is load-bearing: a
+                            flex item defaults to min-height:auto and refuses to
+                            shrink below its content, which leaves overflow-y
+                            with nothing to do and the last links unreachable.
+                            overscroll-contain stops a flick at either end of the
+                            list from being handed to the page behind.
+                        *@
+                        <nav class="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain">
                             <a asp-page="/Index" class="@NavClasses("/Index")" @@click="sidebarOpen = false">Dashboard</a>
                             <a asp-page="/Workouts/Start" class="@NavClasses("/Workouts")" @@click="sidebarOpen = false">Workouts</a>
                             <a asp-page="/Exercises/Index" class="@NavClasses("/Exercises")" @@click="sidebarOpen = false">Exercises</a>
@@ -204,7 +224,7 @@
                             <a asp-area="Identity" asp-page="/Account/Manage/Index" class="@NavClasses("/Identity/Account/Manage")" @@click="sidebarOpen = false">Profile</a>
                         </nav>
 
-                        <div class="mt-auto space-y-3">
+                        <div class="mt-4 shrink-0 space-y-3">
                             <button type="button" @@click="darkMode = !darkMode" class="btn btn-secondary w-full">Toggle theme</button>
                             <form method="post" asp-area="Identity" asp-page="/Account/Logout">
                                 <button type="submit" class="btn btn-danger w-full justify-center">Sign out</button>
@@ -268,6 +288,7 @@
             return {
                 darkMode: false,
                 sidebarOpen: false,
+                lockedScrollY: 0,
                 init() {
                     this.darkMode = localStorage.getItem('darkMode') === 'true';
                     this.applyTheme();
@@ -275,6 +296,31 @@
                         localStorage.setItem('darkMode', value);
                         this.applyTheme();
                     });
+                    this.$watch('sidebarOpen', open => this.lockScroll(open));
+                },
+                // The drawer's own list handles its scrolling, but a drag that
+                // starts anywhere else - the backdrop, the title, the gap either
+                // side of a link - still reaches the page underneath. iOS Safari
+                // ignores overflow:hidden on html and body because it treats
+                // them as the viewport rather than as scroll containers, so
+                // taking the body out of flow is the only lock that holds.
+                // Offsetting top by the current scroll keeps the page visually
+                // still, and it is restored on the way out.
+                lockScroll(locked) {
+                    const style = document.body.style;
+                    if (locked) {
+                        this.lockedScrollY = window.scrollY;
+                        style.position = 'fixed';
+                        style.top = `-${this.lockedScrollY}px`;
+                        style.left = '0';
+                        style.right = '0';
+                    } else {
+                        style.position = '';
+                        style.top = '';
+                        style.left = '';
+                        style.right = '';
+                        window.scrollTo(0, this.lockedScrollY);
+                    }
                 },
                 applyTheme() {
                     document.documentElement.classList.toggle('dark', this.darkMode);
